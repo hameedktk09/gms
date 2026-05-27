@@ -1,0 +1,416 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-courier: "Courier New", Courier, monospace;
+  --spacing-9: 35px;
+  --spacing-10: 35px;
+}
+
+@layer utilities {
+  .font-courier {
+    font-family: var(--font-courier);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-blue-100 selection:text-blue-900;
+  }
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    --background: hsl(60, 5%, 98%); /* Warm off-white */
+    --foreground: hsl(60, 5%, 15%);
+    --card: hsl(0, 0%, 100%);
+    --card-foreground: hsl(60, 5%, 15%);
+    --popover: hsl(0, 0%, 100%);
+    --popover-foreground: hsl(60, 5%, 15%);
+    --primary: hsl(260, 45%, 25%); /* Deep professional blue */
+    --primary-foreground: hsl(0, 0%, 98%);
+    --secondary: hsl(60, 5%, 94%);
+    --secondary-foreground: hsl(260, 45%, 25%);
+    --muted: hsl(60, 5%, 94%);
+    --muted-foreground: hsl(60, 5%, 45%);
+    --accent: hsl(60, 5%, 94%);
+    --accent-foreground: hsl(260, 45%, 25%);
+    --destructive: hsl(15, 80%, 50%);
+    --border: hsl(60, 5%, 88%);
+    --input: hsl(60, 5%, 88%);
+    --ring: hsl(260, 45%, 25%);
+    --chart-1: hsl(260, 60%, 60%);
+    --chart-2: hsl(160, 50%, 50%);
+    --chart-3: hsl(60, 40%, 70%);
+    --chart-4: hsl(200, 50%, 40%);
+    --chart-5: hsl(240, 50%, 30%);
+    --radius: 0.5rem;
+    --sidebar: hsl(60, 5%, 98%);
+    --sidebar-foreground: hsl(60, 5%, 15%);
+    --sidebar-primary: hsl(260, 45%, 25%);
+    --sidebar-primary-foreground: hsl(0, 0%, 98%);
+    --sidebar-accent: hsl(60, 5%, 94%);
+    --sidebar-accent-foreground: hsl(260, 45%, 25%);
+    --sidebar-border: hsl(60, 5%, 88%);
+    --sidebar-ring: hsl(260, 45%, 25%);
+}
+
+.dark {
+    --background: hsl(0, 0%, 15%);
+    --foreground: hsl(0, 0%, 98%);
+    --card: hsl(0, 0%, 20%);
+    --card-foreground: hsl(0, 0%, 98%);
+    --popover: hsl(0, 0%, 20%);
+    --popover-foreground: hsl(0, 0%, 98%);
+    --primary: hsl(0, 0%, 92%);
+    --primary-foreground: hsl(0, 0%, 20%);
+    --secondary: hsl(0, 0%, 27%);
+    --secondary-foreground: hsl(0, 0%, 98%);
+    --muted: hsl(0, 0%, 27%);
+    --muted-foreground: hsl(0, 0%, 71%);
+    --accent: hsl(0, 0%, 27%);
+    --accent-foreground: hsl(0, 0%, 98%);
+    --destructive: hsl(15, 80%, 60%);
+    --border: hsla(0, 0%, 100%, 0.1);
+    --input: hsla(0, 0%, 100%, 0.15);
+    --ring: hsl(0, 0%, 56%);
+    --chart-1: hsl(0, 0%, 87%);
+    --chart-2: hsl(0, 0%, 56%);
+    --chart-3: hsl(0, 0%, 44%);
+    --chart-4: hsl(0, 0%, 37%);
+    --chart-5: hsl(0, 0%, 27%);
+    --sidebar: hsl(0, 0%, 20%);
+    --sidebar-foreground: hsl(0, 0%, 98%);
+    --sidebar-primary: hsl(264, 50%, 48%);
+    --sidebar-primary-foreground: hsl(0, 0%, 98%);
+    --sidebar-accent: hsl(0, 0%, 27%);
+    --sidebar-accent-foreground: hsl(0, 0%, 98%);
+    --sidebar-border: hsla(0, 0%, 100%, 0.1);
+    --sidebar-ring: hsl(0, 0%, 56%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    font-size: 16px;
+  }
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-20px); visibility: hidden; }
+}
+
+.grade-popup-error {
+  position: fixed;
+  background: #e74c3c;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: bold;
+  z-index: 2000;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  animation: fadeOut 1.5s ease forwards;
+  pointer-events: none;
+}
+
+.floating-feedback {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #10b981; /* Green-500 */
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  pointer-events: none;
+  animation: feedbackIn 0.3s ease-out forwards;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.floating-feedback::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #10b981 transparent;
+}
+
+@keyframes feedbackIn {
+  0% { opacity: 0; transform: translate(-50%, -10px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@layer base {
+  @media print {
+    @page landscape-layout {
+      size: landscape;
+      margin: 8mm 10mm;
+    }
+
+    @page portrait-layout {
+      size: portrait;
+      margin: 1cm;
+    }
+
+    @page {
+      size: landscape; /* Use landscape by default to ensure wide grade sheets fit beautifully across the page */
+      margin: 8mm 10mm 8mm 10mm;
+    }
+
+    .print-landscape {
+      page: landscape-layout !important;
+    }
+
+    .print-portrait, .print-portrait-page, .final-report-print {
+      page: portrait-layout !important;
+    }
+
+    /* Primary layout cleaner: Completely hide UI and navigation elements */
+    .no-print,
+    button,
+    [role="button"],
+    input,
+    select,
+    textarea,
+    .tab-list,
+    .dialog-close,
+    nav,
+    header:not(.print-header-row),
+    footer,
+    aside {
+      display: none !important;
+    }
+
+    /* Force background colors to print exactly as designed */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+    }
+
+    /* Prevent clipping and limit constraints on print while preserving layout system */
+    html, body {
+      overflow: visible !important;
+      max-height: none !important;
+      height: auto !important;
+      min-height: 0 !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      font-size: 10px !important;
+    }
+
+    /* Clear any layout overflows specifically but keep relative or absolute values intact */
+    #root, main, .overflow-auto, .overflow-x-auto, .overflow-y-auto, .overflow-hidden {
+      overflow: visible !important;
+      max-height: none !important;
+      height: auto !important;
+      min-height: 0 !important;
+    }
+
+    /* Force all major scaffolding parent wrappers to block layout under print 
+       so multi-page content can flow and break cleanly over sheets */
+    #root > div,
+    #root > div > div,
+    .min-h-screen,
+    .max-w-\[1700px\],
+    .flex-1.px-5.min-h-0,
+    .px-5.min-h-0,
+    .px-5.min-h-0 > div,
+    .px-5.min-h-0 > div > div,
+    .px-5.min-h-0 > div > div > div,
+    .px-5.min-h-0 > div > div > div > div,
+    .print-report-section,
+    .print-report-booklet {
+      display: block !important;
+      position: static !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Additional layout neutralization to escape height limitations, nested view clips, and flex container bounds */
+    .h-screen,
+    .h-full,
+    .max-h-full,
+    .flex,
+    .flex-col,
+    .flex-1,
+    .overflow-hidden,
+    .overflow-auto,
+    .overflow-y-auto,
+    .overflow-x-auto {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    /* Scale tables and containers to fit perfectly onto A4 width */
+    .print-content-container,
+    .print-wrapper-table,
+    table {
+      width: 100% !important;
+      max-width: 100% !important;
+      table-layout: auto !important;
+      border-collapse: collapse !important;
+      margin: 0 !important;
+      page-break-inside: auto !important;
+    }
+
+    /* Header repeating behavior across multiple printed sheets */
+    .print-wrapper-table {
+      display: table !important;
+    }
+
+    .print-header-row {
+      display: table-header-group !important;
+    }
+
+    .print-body-row {
+      display: table-row-group !important;
+    }
+
+    /* Auto-compress grade sheets: ensure rows and headings fit beautifully on a single printable page */
+    tr {
+      page-break-inside: avoid !important;
+      page-break-after: auto !important;
+    }
+
+    thead {
+      display: table-header-group !important;
+    }
+
+    tbody {
+      display: table-row-group !important;
+    }
+
+    th, td {
+      padding: 2px 4px !important; /* Compressed padding to save horizontal spacing */
+      font-size: 8px !important;  /* Elegant micro-typography for technical reports */
+      line-height: normal !important;
+      border: 1px solid #94a3b8 !important; /* Sturdier border style for clean paper legibility */
+      font-weight: 500 !important;
+    }
+
+    th {
+      font-weight: 700 !important;
+      background-color: #f1f5f9 !important;
+      color: #000000 !important;
+    }
+
+    /* Force text wrapping on student name column to prevent overflow, but keep numeric inputs tidy */
+    td.student-name, td:has(span.student-name) {
+      white-space: normal !important;
+      word-wrap: break-word !important;
+      max-width: 180px !important;
+      text-align: left !important;
+    }
+
+    /* Dynamic page break controls */
+    .page-break {
+      page-break-before: always !important;
+      break-before: page !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+    }
+
+    /* Print Viewport control matching state selections */
+    body.print-mode-section .print-report-section { display: block !important; }
+    body.print-mode-section .print-report-booklet { display: none !important; }
+    body.print-mode-booklet .print-report-section { display: none !important; }
+    body.print-mode-booklet .print-report-booklet { display: block !important; }
+  }
+}
+
+/* Scrollbar hiding utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
