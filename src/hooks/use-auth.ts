@@ -89,6 +89,11 @@ export function useAuth() {
     }
   };
 
+  const importUsers = (users: Record<string, User>) => {
+    setAllUsers(users);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+  };
+
   const changePassword = (newPassword: string) => {
     if (!user) return;
     const updated = { ...allUsers };
@@ -128,6 +133,7 @@ export function useAuth() {
     deleteUser,
     approveUser,
     resetPassword,
+    importUsers,
     changePassword,
     skipPasswordChange,
     allUsers

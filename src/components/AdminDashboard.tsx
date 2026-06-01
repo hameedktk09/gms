@@ -54,6 +54,7 @@ interface AdminDashboardProps {
   currentUsername?: string;
   currentSemester?: string;
   onAddUser: (user: User) => void;
+  onImportUsers: (users: Record<string, User>) => void;
   onDeleteUser: (username: string) => void;
   onApproveUser: (username: string) => void;
   onResetPassword: (username: string, newPass: string) => void;
@@ -76,6 +77,7 @@ export function AdminDashboard({
   currentUsername,
   currentSemester = 'Fall',
   onAddUser, 
+  onImportUsers,
   onDeleteUser, 
   onApproveUser, 
   onResetPassword,
@@ -117,11 +119,11 @@ export function AdminDashboard({
   const [instructorToDelete, setInstructorToDelete] = useState<string | null>(null);
   const [argLink, setArgLink] = useState(() => {
     let saved = localStorage.getItem('clfs_arg_link');
-    if (saved === 'https://aistudio.google.com/apps/c6e1a796-94aa-400a-b6a2-fb36aba6c541?showPreview=true&showAssistant=true') {
-      saved = 'https://aistudio.google.com/apps/c6e1a796-94aa-400a-b6a2-fb36aba6c541?showPreview=true&showAssistant=true&fullscreenApplet=true';
+    if (saved === 'https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true') {
+      saved = 'https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true&fullscreenApplet=true';
       localStorage.setItem('clfs_arg_link', saved || '');
     }
-    return saved || 'https://aistudio.google.com/apps/c6e1a796-94aa-400a-b6a2-fb36aba6c541?showPreview=true&showAssistant=true&fullscreenApplet=true';
+    return saved || 'https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true&fullscreenApplet=true';
   });
 
   const handleEmailPrefixChange = (val: string) => {
@@ -577,7 +579,7 @@ export function AdminDashboard({
                   </div>
                   <Button 
                     onClick={() => {
-                      const linkToOpen = argLink.trim() || 'https://aistudio.google.com/apps/c6e1a796-94aa-400a-b6a2-fb36aba6c541?showPreview=true&showAssistant=true&fullscreenApplet=true';
+                      const linkToOpen = argLink.trim() || 'https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true&fullscreenApplet=true';
                       window.open(linkToOpen.startsWith('http') ? linkToOpen : `https://${linkToOpen}`, '_blank');
                     }}
                     className="bg-teal-600 hover:bg-teal-700 text-white font-black text-xs uppercase tracking-widest px-5 h-11 shadow-md shrink-0 flex items-center gap-2 rounded-xl transition-all hover:scale-[1.02] active:scale-95"
@@ -601,13 +603,13 @@ export function AdminDashboard({
                         localStorage.setItem('clfs_arg_link', val);
                       }} 
                       className="h-8 text-[11px] font-mono bg-white border-teal-200 focus:border-teal-500 focus:ring-teal-100 rounded-lg px-3 flex-1"
-                      placeholder="https://aistudio.google.com/apps/c6e1a796-94aa-400a-b6a2-fb36aba6c541?showPreview=true&showAssistant=true&fullscreenApplet=true"
+                      placeholder="https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true&fullscreenApplet=true"
                     />
                     <Button 
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        const linkToOpen = argLink.trim() || 'https://aistudio.google.com/apps/c6e1a796-94aa-400a-b6a2-fb36aba6c541?showPreview=true&showAssistant=true&fullscreenApplet=true';
+                        const linkToOpen = argLink.trim() || 'https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true&fullscreenApplet=true';
                         window.open(linkToOpen.startsWith('http') ? linkToOpen : `https://${linkToOpen}`, '_blank');
                       }}
                       className="h-8 text-[10px] font-bold uppercase tracking-wider bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 px-3 rounded-lg shrink-0 shadow-xs"
@@ -647,7 +649,7 @@ export function AdminDashboard({
                            toast.success("Report data copied for ARG!");
                            
                            // Open ARG link
-                           const linkToOpen = argLink.trim() || 'https://aistudio.google.com/apps/c6e1a796-94aa-400a-b6a2-fb36aba6c541?showPreview=true&showAssistant=true&fullscreenApplet=true';
+                           const linkToOpen = argLink.trim() || 'https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true&fullscreenApplet=true';
                            setTimeout(() => {
                              window.open(linkToOpen.startsWith('http') ? linkToOpen : `https://${linkToOpen}`, '_blank');
                            }, 800);
@@ -728,6 +730,36 @@ export function AdminDashboard({
                 </div>
 
                 <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => {
+                        const instructorNames = instructors.map(u => u.fullName);
+                        const dataStr = JSON.stringify(instructorNames, null, 2);
+                        const blob = new Blob([dataStr], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = "Instructors List.json";
+                        link.click();
+                        URL.revokeObjectURL(url);
+                        toast.success("Instructors list exported.");
+                    }}>Save Instructors List</Button>
+                    <input type="file" id="import-json" className="hidden" accept=".json" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const json = JSON.parse(e.target?.result as string);
+                                onImportUsers(json);
+                                toast.success("Instructor directory imported.");
+                            } catch (error) {
+                                toast.error("Invalid JSON file.");
+                            }
+                        };
+                        reader.readAsText(file);
+                    }} />
+                    <Button variant="outline" size="sm" onClick={() => document.getElementById('import-json')?.click()}>Import JSON</Button>
+                  </div>
                   <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input 

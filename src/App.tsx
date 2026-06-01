@@ -40,6 +40,7 @@ export default function App() {
     deleteUser, 
     approveUser, 
     resetPassword,
+    importUsers,
     changePassword,
     skipPasswordChange,
     allUsers
@@ -729,6 +730,7 @@ export default function App() {
               currentUsername={user?.username}
               currentSemester={currentSemester}
               onAddUser={addUser}
+              onImportUsers={importUsers}
               onDeleteUser={deleteUser}
               onApproveUser={approveUser}
               onResetPassword={resetPassword}
@@ -896,6 +898,7 @@ export default function App() {
                 currentUsername={user?.username}
                 currentSemester={currentSemester}
                 onAddUser={addUser}
+                onImportUsers={importUsers}
                 onDeleteUser={deleteUser}
                 onApproveUser={approveUser}
                 onResetPassword={resetPassword}
