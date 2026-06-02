@@ -1418,11 +1418,16 @@ export function GradeTable({
           if (num < 0) {
             val = '0';
           } else if (max !== undefined && num > max) {
-            val = max.toString();
+            val = '';
             toast.error(`Maximum allowed for this column is ${max}`, {
               id: `max-error-${gradeIdx}`,
               duration: 2000
             });
+            const target = e.target as HTMLInputElement;
+            setTimeout(() => {
+              target.focus();
+              target.select();
+            }, 50);
           }
         }
       }

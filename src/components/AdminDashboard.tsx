@@ -310,7 +310,7 @@ export function AdminDashboard({
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-green-200/40">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Assigned Subject</span>
-                        <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200 uppercase tracking-wider">{userObj.subject}</span>
+                        <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded border border-teal-200 uppercase tracking-wider">{userObj.subject}</span>
                       </div>
                     </div>
 
@@ -364,14 +364,14 @@ export function AdminDashboard({
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-blue-900">
+                  <div className="flex items-center gap-2 text-teal-950">
                     <FileText className="w-5 h-5 text-teal-600" />
                     <h3 className="text-xl font-black uppercase tracking-tight">My Section Performance Reports</h3>
                   </div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Performance summary for your classes</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-900 border-2 border-blue-200">
+                  <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-teal-50 text-teal-950 border-2 border-teal-200">
                     {currentSemester} Semester 2026
                   </div>
                 </div>
@@ -499,11 +499,11 @@ export function AdminDashboard({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Full Name</label>
-                    <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Dr. Hameed Ur Rehman" className="bg-white h-12 text-sm border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all font-medium" disabled={currentUserRole !== 'admin'} />
+                    <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Dr. Hameed Ur Rehman" className="bg-white h-12 text-sm border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-50/50 transition-all font-medium" disabled={currentUserRole !== 'admin'} />
                     </div>
                     <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Username (ID)</label>
-                    <Input value={username} onChange={e => handleUsernameChange(e.target.value)} placeholder="E0000" className="bg-white h-12 text-sm border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all font-medium" />
+                    <Input value={username} onChange={e => handleUsernameChange(e.target.value)} placeholder="E0000" className="bg-white h-12 text-sm border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-50/50 transition-all font-medium" />
                     </div>
                   </div>
 
@@ -515,7 +515,7 @@ export function AdminDashboard({
                         value={emailPrefix} 
                         onChange={e => handleEmailPrefixChange(e.target.value)} 
                         placeholder="instructor" 
-                        className="bg-white h-12 text-sm border-slate-200 border-r-0 rounded-r-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all font-medium flex-1" 
+                        className="bg-white h-12 text-sm border-slate-200 border-r-0 rounded-r-none focus:border-teal-500 focus:ring-4 focus:ring-teal-50/50 transition-all font-medium flex-1" 
                       />
                       <span className="h-12 px-3 border border-slate-200 bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-500 rounded-r-md select-none border-l-0">
                         @asu.edu.om
@@ -524,12 +524,12 @@ export function AdminDashboard({
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Initial Password</label>
-                      <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="bg-white h-12 text-sm border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all font-bold" />
+                      <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="bg-white h-12 text-sm border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-50/50 transition-all font-bold" />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Assign Subject</label>
                       <Select value={subject} onValueChange={setSubject}>
-                        <SelectTrigger className="bg-white h-12 text-sm border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all font-bold">
+                        <SelectTrigger className="bg-white h-12 text-sm border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-50/50 transition-all font-bold">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-white border-slate-200">
@@ -544,7 +544,7 @@ export function AdminDashboard({
                   <div className="pt-4">
                     <Button 
                       onClick={handleAddInstructor} 
-                      className="w-full h-14 bg-slate-100 hover:bg-[#FFEE82] text-blue-900 font-black text-sm uppercase tracking-[0.2em] shadow-lg border-2 border-slate-400 hover:border-[#FFEE82] transition-all active:scale-95"
+                      className="w-full h-14 bg-slate-100 hover:bg-[#FFEE82] text-teal-950 font-black text-sm uppercase tracking-[0.2em] shadow-lg border-2 border-slate-400 hover:border-[#FFEE82] transition-all active:scale-95"
                       disabled={currentUserRole !== 'admin'}
                     >
                       {currentUserRole !== 'admin' ? 'Admin Access Only' : 'Register New Instructor'}
@@ -623,14 +623,14 @@ export function AdminDashboard({
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-blue-900">
+                    <div className="flex items-center gap-2 text-teal-950">
                       <FileText className="w-5 h-5" />
                       <h3 className="text-xl font-black uppercase tracking-tight">Annual Report Generator</h3>
                     </div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Consolidated performance data across all sections</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-900 border-2 border-blue-200">
+                    <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-teal-50 text-teal-950 border-2 border-teal-200">
                       {currentSemester} Semester 2026
                     </div>
                     <Button 
@@ -722,7 +722,7 @@ export function AdminDashboard({
             <TabsContent value="directory" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-blue-900">
+                  <div className="flex items-center gap-2 text-teal-950">
                     <Users className="w-5 h-5" />
                     <h3 className="text-xl font-black uppercase tracking-tight">Instructor Directory</h3>
                   </div>
@@ -766,7 +766,7 @@ export function AdminDashboard({
                       placeholder="Search by name or ID..." 
                       value={instructorSearch}
                       onChange={e => setInstructorSearch(e.target.value)}
-                      className="pl-9 h-11 bg-white border-slate-200 text-xs font-bold focus:border-blue-400 transition-all shadow-sm"
+                      className="pl-9 h-11 bg-white border-slate-200 text-xs font-bold focus:border-teal-500 transition-all shadow-sm"
                     />
                   </div>
 
@@ -781,8 +781,8 @@ export function AdminDashboard({
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${
                           activeTab === tab.id 
-                            ? 'bg-[#FFEE82] text-blue-900 shadow-sm' 
-                            : 'bg-slate-100 text-slate-500 border border-slate-300 hover:text-blue-900 hover:bg-[#FFEE82] hover:border-[#FFEE82]'
+                            ? 'bg-[#FFEE82] text-teal-950 shadow-sm' 
+                            : 'bg-slate-100 text-slate-500 border border-slate-300 hover:text-teal-950 hover:bg-[#FFEE82] hover:border-[#FFEE82]'
                         }`}
                       >
                         <tab.icon className="w-3.5 h-3.5" />
@@ -819,15 +819,15 @@ export function AdminDashboard({
                           "flex items-center justify-between p-5 border transition-all group",
                           u.username === currentUsername && (currentUserRole as string) === 'instructor' 
                             ? "bg-green-50 border-green-300 shadow-md shadow-green-100" 
-                            : "bg-white border-slate-200 hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50"
+                            : "bg-white border-slate-200 hover:border-teal-400 hover:shadow-xl hover:shadow-teal-50"
                         )}
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                          <div className="w-12 h-12 bg-teal-50 flex items-center justify-center text-[#00786f] font-black text-sm border border-teal-100 group-hover:bg-[#00786f] group-hover:text-white transition-all">
                             {u.fullName.charAt(0)}
                           </div>
                           <div>
-                            <h4 className="font-black text-slate-900 group-hover:text-blue-700 transition-colors uppercase tracking-tight">
+                            <h4 className="font-black text-slate-900 group-hover:text-teal-700 transition-colors uppercase tracking-tight">
                               {u.fullName}
                               {u.username === currentUsername && (currentUserRole as string) === 'instructor' && (
                                 <span className="ml-2 text-[8px] bg-green-600 text-white px-1.5 py-0.5 rounded-full vertical-middle animate-pulse">REGISTERED</span>
@@ -835,7 +835,7 @@ export function AdminDashboard({
                             </h4>
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               <span className="text-[10px] font-black text-slate-400 border border-slate-200 px-2 py-0.5 rounded uppercase">{u.username}</span>
-                              <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded uppercase">{u.subject}</span>
+                              <span className="text-[10px] font-bold text-teal-750 bg-teal-50 px-2 py-0.5 rounded uppercase">{u.subject}</span>
                             </div>
                             {currentUserRole === 'admin' && (
                               <div className="flex items-center gap-1.5 mt-2 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 border border-slate-200 rounded-md max-w-max transition-all">
@@ -872,7 +872,7 @@ export function AdminDashboard({
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-9 px-3 text-[10px] font-black uppercase tracking-widest gap-2 bg-slate-100 border-slate-300 hover:border-[#FFEE82] hover:bg-[#FFEE82] hover:text-blue-900 shadow-sm transition-all"
+                              className="h-9 px-3 text-[10px] font-black uppercase tracking-widest gap-2 bg-slate-100 border-slate-300 hover:border-[#FFEE82] hover:bg-[#FFEE82] hover:text-teal-950 shadow-sm transition-all"
                               onClick={() => handleResetPassword(u)}
                             >
                               <KeyRound className="w-4 h-4" />
@@ -928,7 +928,7 @@ export function AdminDashboard({
               <TabsContent value="requests" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-blue-900">
+                  <div className="flex items-center gap-2 text-teal-950">
                     <CheckCircle2 className="w-5 h-5 text-teal-600" />
                     <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Registration Requests</h3>
                   </div>
@@ -1132,7 +1132,7 @@ export function AdminDashboard({
         <Dialog open={isCerDialogOpen} onOpenChange={setIsCerDialogOpen}>
           <DialogContent className="max-w-6xl w-[95vw] lg:max-w-6xl xl:max-w-7xl max-h-[90vh] flex flex-col">
             <DialogHeader className="shrink-0">
-              <DialogTitle className="text-xl font-black uppercase tracking-tighter italic text-blue-900">
+              <DialogTitle className="text-xl font-black uppercase tracking-tighter italic text-teal-950">
                 Consolidated Course Evaluation Report (Admin)
               </DialogTitle>
             </DialogHeader>
@@ -1146,7 +1146,7 @@ export function AdminDashboard({
                     <Button 
                       size="sm"
                       variant="outline"
-                      className="h-7 px-2 text-[10px] font-bold uppercase gap-1 hover:bg-blue-50 border-slate-200"
+                      className="h-7 px-2 text-[10px] font-bold uppercase gap-1 hover:bg-teal-50 border-slate-200"
                       onClick={() => {
                         navigator.clipboard.writeText(section.content);
                         toast.success(`${section.title} copied!`);
@@ -1156,7 +1156,7 @@ export function AdminDashboard({
                       Copy
                     </Button>
                   </div>
-                  <div className="bg-slate-50 p-4 border border-slate-200 text-xs font-mono whitespace-pre-wrap rounded-sm shadow-sm transition-all group-hover:border-blue-200">
+                  <div className="bg-slate-50 p-4 border border-slate-200 text-xs font-mono whitespace-pre-wrap rounded-sm shadow-sm transition-all group-hover:border-teal-200">
                     {section.content}
                   </div>
                 </div>
@@ -1171,7 +1171,7 @@ export function AdminDashboard({
                 Close
               </Button>
               <Button 
-                className="font-black uppercase tracking-widest text-[11px] h-9 bg-blue-900"
+                className="font-black uppercase tracking-widest text-[11px] h-9 bg-[#00786f] hover:bg-teal-800"
                 onClick={() => {
                   const fullText = cerSections.map(s => `${s.title}:\n${s.content}`).join('\n\n');
                   navigator.clipboard.writeText(fullText);
@@ -1189,22 +1189,22 @@ export function AdminDashboard({
         <Dialog open={!!generatedPassword} onOpenChange={(open) => !open && setGeneratedPassword(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-black uppercase tracking-tight text-blue-900 flex items-center gap-2">
-                <KeyRound className="w-6 h-6 text-blue-600" />
+              <DialogTitle className="text-xl font-black uppercase tracking-tight text-teal-950 flex items-center gap-2">
+                <KeyRound className="w-6 h-6 text-[#00786f]" />
                 Temporary Access Credentials
               </DialogTitle>
             </DialogHeader>
             <div className="py-6 space-y-4">
-              <div className="p-4 bg-blue-50 border border-blue-100 rounded-sm space-y-3">
-                <p className="text-xs font-bold text-blue-800 uppercase tracking-wider">Please provide these details to the instructor:</p>
+              <div className="p-4 bg-teal-55/40 border border-teal-100 rounded-sm space-y-3">
+                <p className="text-xs font-bold text-teal-850 uppercase tracking-wider">Please provide these details to the instructor:</p>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                  <div className="flex justify-between items-center py-2 border-b border-teal-100">
                     <span className="text-[10px] font-black text-slate-500 uppercase">Username</span>
                     <span className="text-sm font-bold text-slate-900">{generatedPassword?.username}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                  <div className="flex justify-between items-center py-2 border-b border-teal-100">
                     <span className="text-[10px] font-black text-slate-500 uppercase">Temporary Password</span>
-                    <span className="text-sm font-mono font-bold text-blue-700 bg-white px-2 py-1 border border-blue-200">{generatedPassword?.pass}</span>
+                    <span className="text-sm font-mono font-bold text-teal-700 bg-white px-2 py-1 border border-teal-150">{generatedPassword?.pass}</span>
                   </div>
                 </div>
               </div>
@@ -1214,7 +1214,7 @@ export function AdminDashboard({
             </div>
             <DialogFooter>
               <Button 
-                className="w-full font-black uppercase tracking-widest text-[11px] h-10 bg-blue-900"
+                className="w-full font-black uppercase tracking-widest text-[11px] h-10 bg-[#00786f] hover:bg-teal-800"
                 onClick={() => {
                   if (generatedPassword) {
                     navigator.clipboard.writeText(`Username: ${generatedPassword.username}\nTemporary Password: ${generatedPassword.pass}`);

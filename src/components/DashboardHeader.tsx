@@ -84,18 +84,18 @@ export function DashboardHeader({
             <div className="flex flex-col items-center justify-start text-center gap-4 px-2 print:bg-white print:border-none print:p-0 print:shadow-none">
               <div className="w-full bg-white p-3 border border-slate-200 shadow-sm flex flex-col items-center justify-center h-[116px] print:border-none print:shadow-none print:p-0 print:h-auto">
                 <div className="flex flex-col items-center gap-1.5">
-                  <h1 className="text-[20px] leading-[25px] font-black text-blue-900 uppercase tracking-[0.25em] print:text-blue-900 print:text-lg">
+                  <h1 className="text-[20px] leading-[25px] font-black text-teal-950 uppercase tracking-[0.25em] print:text-teal-950 print:text-lg">
                     A'Sharqiyah University
                   </h1>
-                  <h2 className="text-xs md:text-sm font-serif font-bold italic text-blue-700 uppercase tracking-[0.15em] print:text-blue-700 print:text-base">
+                  <h2 className="text-xs md:text-sm font-serif font-bold italic text-teal-800 uppercase tracking-[0.15em] print:text-teal-850 print:text-base">
                     Center For Language and Foundation Studies
                   </h2>
-                  <div className="flex items-center gap-3 mt-1 underline-offset-4 decoration-blue-200">
+                  <div className="flex items-center gap-3 mt-1 underline-offset-4 decoration-teal-200">
                     <span className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-[0.1em] print:text-slate-700 print:text-xs">
                       GMS | Grade Management System
                     </span>
                     <div className="w-1 h-1 bg-slate-300" />
-                    <span className="text-[10px] md:text-xs font-black text-blue-800 uppercase tracking-[0.1em] print:text-blue-800 print:text-xs">
+                    <span className="text-[10px] md:text-xs font-black text-teal-900 uppercase tracking-[0.1em] print:text-teal-900 print:text-xs">
                       {SEMESTER_OPTIONS.find(s => s.value === semester)?.label || semester}
                     </span>
                   </div>
@@ -120,8 +120,8 @@ export function DashboardHeader({
                     className={cn(
                       "px-6 py-3 text-xs font-black uppercase tracking-wider transition-all border shadow-sm",
                       view === v.id 
-                        ? "bg-[#FFEE82] text-blue-900 border-[#FFEE82] ring-2 ring-[#FFEE82]/10" 
-                        : "bg-slate-100 text-slate-600 border-slate-300 hover:border-[#FFEE82] hover:text-blue-900 hover:bg-[#FFEE82]"
+                        ? "bg-[#FFEE82] text-teal-950 border-[#FFEE82] ring-2 ring-[#FFEE82]/10" 
+                        : "bg-slate-100 text-slate-600 border-slate-300 hover:border-[#FFEE82] hover:text-teal-950 hover:bg-[#FFEE82]"
                     )}
                   >
                     {v.label}
@@ -140,7 +140,7 @@ export function DashboardHeader({
                       variant="outline" 
                       size="icon" 
                       onClick={onOpenAdmin}
-                      className="w-9 h-9 bg-slate-100 text-blue-600 border-slate-300 hover:bg-[#FFEE82] hover:text-blue-900 hover:border-[#FFEE82] transition-all no-print shadow-sm shrink-0"
+                      className="w-9 h-9 bg-slate-100 text-[#00786f] border-slate-300 hover:bg-[#FFEE82] hover:text-teal-950 hover:border-[#FFEE82] transition-all no-print shadow-sm shrink-0"
                       title={user?.role === 'admin' ? "Admin Dashboard" : "Instructor Directory"}
                     >
                       <ShieldAlert className="w-5 h-5" />
@@ -178,7 +178,7 @@ export function DashboardHeader({
                     <SelectContent className="bg-white border-slate-200 text-slate-900">
                       {COURSE_OPTIONS.filter(c => availableCourses.includes(c.value)).map(c => {
                         return (
-                          <SelectItem key={c.value} value={c.value} className="!font-normal text-blue-600">
+                          <SelectItem key={c.value} value={c.value} className="!font-normal text-teal-700">
                             {c.label}
                           </SelectItem>
                         );

@@ -94,11 +94,11 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
         className="w-full max-w-[340px] bg-white shadow-xl border border-slate-200 overflow-hidden"
       >
         <div className="bg-teal-950 p-6 text-center text-white">
-          <div className="w-[200px] h-12 bg-white flex items-center justify-center mx-auto mb-3 border border-blue-100 shadow-sm p-1.5">
+          <div className="w-[200px] h-12 bg-white flex items-center justify-center mx-auto mb-3 border border-teal-900/10 shadow-sm p-1.5">
             <ClfsLogo className="w-full h-full object-contain" />
           </div>
           <h1 className="text-base font-bold tracking-tight leading-none uppercase">CLFS Portal</h1>
-          <p className="text-blue-100 text-[10px] mt-1.5 uppercase tracking-wider font-semibold leading-none">Grade Management System</p>
+          <p className="text-teal-100 text-[10px] mt-1.5 uppercase tracking-wider font-semibold leading-none">Grade Management System</p>
         </div>
 
         <form onSubmit={handleLogin} className="p-6 space-y-4">
@@ -140,7 +140,7 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-10 px-4 border border-slate-200 focus:border-blue-950 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-slate-50/50 text-[12px] font-medium"
+                className="w-full h-10 px-4 border border-slate-200 focus:border-teal-950 focus:ring-2 focus:ring-teal-100 outline-none transition-all bg-slate-50/50 text-[12px] font-medium"
                 placeholder="Username"
                 required
               />
@@ -152,14 +152,14 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-10 pl-4 pr-10 border border-slate-200 focus:border-blue-950 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-slate-50/50 text-[12px] font-medium"
+                  className="w-full h-10 pl-4 pr-10 border border-slate-200 focus:border-teal-950 focus:ring-2 focus:ring-teal-100 outline-none transition-all bg-slate-50/50 text-[12px] font-medium"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-900 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-900 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -170,9 +170,9 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
           <Button 
             type="submit"
             disabled={loading}
-            className="w-full h-10 bg-white hover:bg-[#FFEE82] text-blue-900 border-2 border-slate-300 hover:border-[#FFEE82] font-black uppercase text-[11px] tracking-widest shadow-sm transition-all active:scale-[0.98]"
+            className="w-full h-10 bg-white hover:bg-[#FFEE82] text-teal-950 border-2 border-slate-300 hover:border-[#FFEE82] font-black uppercase text-[11px] tracking-widest shadow-sm transition-all active:scale-[0.98]"
           >
-            <LogIn className="w-3.5 h-3.5 mr-2 text-blue-600" />
+            <LogIn className="w-3.5 h-3.5 mr-2 text-[#00786f]" />
             {loading ? 'Wait...' : 'Sign In'}
           </Button>
 
@@ -199,7 +199,7 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
             ) : (
               <button 
                 type="button"
-                className="text-[10px] font-black text-blue-950 hover:text-black uppercase tracking-widest"
+                className="text-[10px] font-black text-teal-950 hover:text-black uppercase tracking-widest"
                 onClick={handleForgotPassword}
               >
                 Forgot Credentials?

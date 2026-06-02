@@ -52,8 +52,8 @@ export function ChangePasswordModal({ isOpen, onClose, onConfirm }: ChangePasswo
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-blue-900 font-black uppercase tracking-tight">
-            <KeyRound className="w-5 h-5 text-blue-600" />
+          <DialogTitle className="flex items-center gap-2 text-teal-950 font-black uppercase tracking-tight">
+            <KeyRound className="w-5 h-5 text-[#00786f]" />
             Security Preference
           </DialogTitle>
           <DialogDescription className="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">
@@ -77,7 +77,7 @@ export function ChangePasswordModal({ isOpen, onClose, onConfirm }: ChangePasswo
                 value={newPassword} 
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
-                className="h-11 bg-slate-50 border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all font-bold"
+                className="h-11 bg-slate-50 border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-100/50 transition-all font-bold"
                 required
               />
             </div>
@@ -88,17 +88,17 @@ export function ChangePasswordModal({ isOpen, onClose, onConfirm }: ChangePasswo
                 value={confirmPassword} 
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="h-11 bg-slate-50 border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all font-bold"
+                className="h-11 bg-slate-50 border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-100/50 transition-all font-bold"
                 required
               />
             </div>
           </div>
 
-          <div className="bg-blue-50 p-3 flex items-start gap-3 border border-blue-100">
-            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <div className="bg-teal-50 p-3 flex items-start gap-3 border border-teal-100">
+            <ShieldCheck className="w-4 h-4 text-[#00786f] shrink-0 mt-0.5" />
             <div className="space-y-1">
-                <p className="text-[9px] font-black text-blue-900 uppercase tracking-widest">Security Guidelines:</p>
-                <ul className="text-[8px] font-bold text-blue-700 uppercase tracking-tighter space-y-0.5 opacity-80">
+                <p className="text-[9px] font-black text-teal-950 uppercase tracking-widest">Security Guidelines:</p>
+                <ul className="text-[8px] font-bold text-teal-800 uppercase tracking-tighter space-y-0.5 opacity-80">
                     <li>• Minimum 8 characters in length</li>
                     <li>• Must contain a mix of letters and numbers</li>
                     <li>• Avoid using your username or common patterns</li>
@@ -108,7 +108,7 @@ export function ChangePasswordModal({ isOpen, onClose, onConfirm }: ChangePasswo
 
           <Button 
             type="submit" 
-            className="w-full h-12 bg-blue-900 hover:bg-blue-800 text-white font-black uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-[0.98]"
+            className="w-full h-12 bg-[#00786f] hover:bg-teal-800 text-white font-black uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-[0.98]"
           >
             Update & Secure Account
           </Button>

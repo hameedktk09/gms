@@ -57,6 +57,41 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 
+export function formatMarkdownToJSX(text: string | null | undefined): React.ReactNode {
+  if (!text) return null;
+  let cleaned = text;
+  // Clean up empty double asterisks blocks (e.g. "** **" or "****")
+  cleaned = cleaned.replace(/\*\*\s*\*\*/g, " ");
+  // Clean up triple/quadruple asterisks
+  cleaned = cleaned.replace(/\*{3,}/g, "**");
+  
+  // Ensure even double asterisks pairs
+  const occurrences = (cleaned.match(/\*\*/g) || []).length;
+  if (occurrences % 2 !== 0) {
+    cleaned = cleaned + "**";
+  }
+
+  const parts = cleaned.split("**");
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (index % 2 === 1) {
+          if (!part.trim()) return null;
+          return (
+            <strong 
+              key={index} 
+              className="font-extrabold text-[#006056] bg-yellow-101 bg-yellow-100/60 dark:bg-yellow-900/20 px-1 py-0.5 rounded-sm border border-yellow-200/50 inline-block font-sans print:text-slate-950 print:bg-transparent print:border-none print:px-0 print:py-0"
+            >
+              {part}
+            </strong>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+}
+
 interface FinalReportProps {
   students: StudentData[];
   courseCode: string;
@@ -77,6 +112,15 @@ export function FinalReport({
   metadata
 }: FinalReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
+  
+  const aiReports = React.useMemo(() => {
+    try {
+      const saved = localStorage.getItem(`ai_reports_${courseCode}_${section}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }, [courseCode, section]);
   
   useEffect(() => {
     const originalTitle = document.title;
@@ -1254,51 +1298,68 @@ export function FinalReport({
              <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Descriptive Analysis Report</h3>
                 <div className={`px-4 py-1 text-[12px] font-black uppercase tracking-widest border-2 ${
-                  (parseFloat(passRate) >= 90 || parseFloat(avgScore) >= 85) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                  (parseFloat(passRate) >= 80 || parseFloat(avgScore) >= 75) ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                  (parseFloat(passRate) >= 55 || parseFloat(avgScore) >= 65) ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                  'bg-red-50 text-red-700 border-red-200'
+                  aiReports && aiReports.categoryPerformance ? (
+                    aiReports.categoryPerformance.toUpperCase().includes("EXCELLENT") ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    aiReports.categoryPerformance.toUpperCase().includes("GOOD") ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    aiReports.categoryPerformance.toUpperCase().includes("SATISFACTORY") ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    'bg-red-50 text-red-700 border-red-200'
+                  ) : (
+                    (parseFloat(passRate) >= 90 || parseFloat(avgScore) >= 85) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    (parseFloat(passRate) >= 80 || parseFloat(avgScore) >= 75) ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    (parseFloat(passRate) >= 55 || parseFloat(avgScore) >= 65) ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    'bg-red-50 text-red-700 border-red-200'
+                  )
                 }`}>
                   Section Performance: {
-                    (parseFloat(passRate) >= 90 || parseFloat(avgScore) >= 85) ? 'Excellent' :
-                    (parseFloat(passRate) >= 80 || parseFloat(avgScore) >= 75) ? 'Good' :
-                    (parseFloat(passRate) >= 55 || parseFloat(avgScore) >= 65) ? 'Satisfactory' : 'Needs Attention'
+                    aiReports && aiReports.categoryPerformance ? aiReports.categoryPerformance : (
+                      (parseFloat(passRate) >= 90 || parseFloat(avgScore) >= 85) ? 'Excellent' :
+                      (parseFloat(passRate) >= 80 || parseFloat(avgScore) >= 75) ? 'Good' :
+                      (parseFloat(passRate) >= 55 || parseFloat(avgScore) >= 65) ? 'Satisfactory' : 'Needs Attention'
+                    )
                   }
                 </div>
              </div>
 
              <div className="grid grid-cols-2 gap-10 text-[11px] text-slate-700 leading-relaxed font-medium">
-                <div className="space-y-4">
-                  <p>
-                    A comprehensive analysis of the <strong>{stats.total}</strong> enrolled students illustrates a clear performance trajectory for this section. 
-                    The current passing rate stands at <strong>{passRate}%</strong>, which suggests a {
-                      parseFloat(passRate) >= 85 ? 'highly successful mastery of the core competencies' :
-                      parseFloat(passRate) >= 70 ? 'solid understanding and engagement with the curriculum' :
-                      'significant opportunity for instructional intervention and reinforcement'
-                    }.
-                  </p>
-                  <p>
-                    Qualitatively, the grade distribution reflects a <strong>{
-                      (stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0) > stats.total * 0.3 ? 'top-heavy performance curve' :
-                      (stats.grades['C'] || 0) + (stats.grades['C-'] || 0) > stats.total * 0.4 ? 'centered distribution' :
-                      'varied academic range'
-                    }</strong>. We observe that <strong>{(stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0)}</strong> students achieved high distinction (Excellent), while <strong>{stats.failed || 0}</strong> students currently fall below the required threshold for proficiency.
-                  </p>
-                </div>
-                
-                <div className="space-y-4">
-                  <p>
-                    The statistical dispersion is captured by an average grade of <strong>{avgScore || '0.0'}</strong>, anchored by a high of <strong>{stats.maxScore || '0.0'}</strong> and a low of <strong>{stats.minScore || '0.0'}</strong>. 
-                    This <strong>{String((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0))} point spread</strong> indicates {
-                      (parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0) > 40 ? 'a wide variance in student readiness and background knowledge' :
-                      'a relatively cohesive academic standing across the cohort'
-                    }.
-                  </p>
-                  <p>
-                    Critical data points include <strong>{reportData.filter(s => ['FA'].includes(s.fv.finallyValue)).length} students</strong> with 'FA' (Failure due to Absence) status, representing a primary risk factor for overall section statistics. 
-                    Furthermore, the at-risk population (scoring below 27.5/50) encompasses <strong>{atRiskDist.atRiskCount}</strong> students, requiring immediate focused feedback sessions.
-                  </p>
-                </div>
+                {aiReports ? (
+                  <div className="col-span-2 whitespace-pre-wrap font-sans text-xs leading-relaxed p-6 bg-white border border-slate-200 rounded-sm">
+                    {formatMarkdownToJSX(aiReports.descriptiveAnalysis)}
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <p>
+                        A comprehensive analysis of the <strong>{stats.total}</strong> enrolled students illustrates a clear performance trajectory for this section. 
+                        The current passing rate stands at <strong>{passRate}%</strong>, which suggests a {
+                          parseFloat(passRate) >= 85 ? 'highly successful mastery of the core competencies' :
+                          parseFloat(passRate) >= 70 ? 'solid understanding and engagement with the curriculum' :
+                          'significant opportunity for instructional intervention and reinforcement'
+                        }.
+                      </p>
+                      <p>
+                        Qualitatively, the grade distribution reflects a <strong>{
+                          (stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0) > stats.total * 0.3 ? 'top-heavy performance curve' :
+                          (stats.grades['C'] || 0) + (stats.grades['C-'] || 0) > stats.total * 0.4 ? 'centered distribution' :
+                          'varied academic range'
+                        }</strong>. We observe that <strong>{(stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0)}</strong> students achieved high distinction (Excellent), while <strong>{stats.failed || 0}</strong> students currently fall below the required threshold for proficiency.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <p>
+                        The statistical dispersion is captured by an average grade of <strong>{avgScore || '0.0'}</strong>, anchored by a high of <strong>{stats.maxScore || '0.0'}</strong> and a low of <strong>{stats.minScore || '0.0'}</strong>. 
+                        This <strong>{String((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0))} point spread</strong> indicates {
+                          (parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0) > 40 ? 'a wide variance in student readiness and background knowledge' :
+                          'a relatively cohesive academic standing across the cohort'
+                        }.
+                      </p>
+                      <p>
+                        Critical data points include <strong>{reportData.filter(s => ['FA'].includes(s.fv.finallyValue)).length} students</strong> with 'FA' (Failure due to Absence) status, representing a primary risk factor for overall section statistics. 
+                        Furthermore, the at-risk population (scoring below 27.5/50) encompasses <strong>{atRiskDist.atRiskCount}</strong> students, requiring immediate focused feedback sessions.
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div className="col-span-2 mt-4 p-8 bg-white border-2 border-slate-200 shadow-sm space-y-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -1307,31 +1368,42 @@ export function FinalReport({
                   <h4 className="font-black text-blue-900 text-[11px] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                     <Users className="w-5 h-5" />
                     Gender Demographics & Comparative Outcomes
+                    {aiReports && (
+                      <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ml-2">
+                        AI Report Connected
+                      </span>
+                    )}
                   </h4>
-                  <div className="grid grid-cols-2 gap-12">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-baseline border-b border-slate-100 pb-2">
-                        <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Male Performance</span>
-                        <span className="text-2xl font-black text-blue-600">{stats.genderStats.male.total > 0 ? ((stats.genderStats.male.pass / stats.genderStats.male.total) * 100).toFixed(1) : 0}%</span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 leading-normal">
-                        Of the <strong>{stats.genderStats.male.total}</strong> male students, <strong>{stats.genderStats.male.pass}</strong> achieved a passing status. This demographic accounts for <strong>{stats.total > 0 ? ((stats.genderStats.male.total / stats.total) * 100).toFixed(1) : 0}%</strong> of the total population.
-                      </p>
+                  {aiReports ? (
+                    <div className="whitespace-pre-wrap font-sans text-xs leading-relaxed p-6 bg-slate-50 border border-slate-200 rounded-sm">
+                      {formatMarkdownToJSX(aiReports.genderDemographics)}
                     </div>
-                    <div className="space-y-3 border-l border-slate-100 pl-12">
-                      <div className="flex justify-between items-baseline border-b border-slate-100 pb-2">
-                        <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Female Performance</span>
-                        <span className="text-2xl font-black text-emerald-600">{stats.genderStats.female.total > 0 ? ((stats.genderStats.female.pass / stats.genderStats.female.total) * 100).toFixed(1) : 0}%</span>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-12">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-2">
+                          <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Male Performance</span>
+                          <span className="text-2xl font-black text-blue-600">{stats.genderStats.male.total > 0 ? ((stats.genderStats.male.pass / stats.genderStats.male.total) * 100).toFixed(1) : 0}%</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-normal">
+                          Of the <strong>{stats.genderStats.male.total}</strong> male students, <strong>{stats.genderStats.male.pass}</strong> achieved a passing status. This demographic accounts for <strong>{stats.total > 0 ? ((stats.genderStats.male.total / stats.total) * 100).toFixed(1) : 0}%</strong> of the total population.
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-600 leading-normal">
-                        With <strong>{stats.genderStats.female.total}</strong> enrolled female students and <strong>{stats.genderStats.female.pass}</strong> passing, the cohort shows a <strong>{(() => {
-                          const maleRate = stats.genderStats.male.total > 0 ? (stats.genderStats.male.pass / stats.genderStats.male.total) : 0;
-                          const femaleRate = stats.genderStats.female.total > 0 ? (stats.genderStats.female.pass / stats.genderStats.female.total) : 0;
-                          return Math.abs((maleRate - femaleRate) * 100).toFixed(1);
-                        })()}% variance</strong> between gender-based performance metrics.
-                      </p>
+                      <div className="space-y-3 border-l border-slate-100 pl-12">
+                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-2">
+                          <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Female Performance</span>
+                          <span className="text-2xl font-black text-emerald-600">{stats.genderStats.female.total > 0 ? ((stats.genderStats.female.pass / stats.genderStats.female.total) * 100).toFixed(1) : 0}%</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-normal">
+                          With <strong>{stats.genderStats.female.total}</strong> enrolled female students and <strong>{stats.genderStats.female.pass}</strong> passing, the cohort shows a <strong>{(() => {
+                            const maleRate = stats.genderStats.male.total > 0 ? (stats.genderStats.male.pass / stats.genderStats.male.total) : 0;
+                            const femaleRate = stats.genderStats.female.total > 0 ? (stats.genderStats.female.pass / stats.genderStats.female.total) : 0;
+                            return Math.abs((maleRate - femaleRate) * 100).toFixed(1);
+                          })()}% variance</strong> between gender-based performance metrics.
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
              </div>
           </div>
@@ -1427,15 +1499,30 @@ export function FinalReport({
             <div className="bg-white border-2 border-slate-100 p-10 flex flex-col justify-center">
                <div className="border-l-4 border-blue-900 pl-6 space-y-6">
                  <div>
-                    <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest mb-3">Syllabus Coverage Summary</h3>
-                    <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                      The course syllabus for <strong>{courseCode}</strong> shows an average completion rate of <strong>{averageCompletion}%</strong> across all assessed components. This metric reflects the alignment between the session's instructional plan and the recorded academic evaluations.
-                    </p>
-                 </div>
-                 <div className="bg-blue-50/50 p-4 border border-blue-100/50">
-                    <p className="text-[11px] text-blue-800 leading-relaxed italic">
-                      "High completion rates confirm robust academic delivery and effective session management, ensuring all learning outcomes are addressed within the scheduled timeframe."
-                    </p>
+                    <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest mb-3">
+                      Syllabus Coverage Summary
+                      {aiReports && (
+                        <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ml-2">
+                          AI Insights Active
+                        </span>
+                      )}
+                    </h3>
+                    {aiReports && aiReports.completionInsights ? (
+                      <div className="whitespace-pre-wrap font-sans text-xs text-slate-600 leading-relaxed font-medium">
+                        {formatMarkdownToJSX(aiReports.completionInsights)}
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                          The course syllabus for <strong>{courseCode}</strong> shows an average completion rate of <strong>{averageCompletion}%</strong> across all assessed components. This metric reflects the alignment between the session's instructional plan and the recorded academic evaluations.
+                        </p>
+                        <div className="bg-blue-50/50 p-4 border border-blue-100/50 mt-4">
+                           <p className="text-[11px] text-blue-800 leading-relaxed italic">
+                             "High completion rates confirm robust academic delivery and effective session management, ensuring all learning outcomes are addressed within the scheduled timeframe."
+                           </p>
+                        </div>
+                      </>
+                    )}
                  </div>
                </div>
             </div>
@@ -1483,18 +1570,25 @@ export function FinalReport({
             <div className="bg-white border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4 border-l-4 border-blue-900 pl-3">
                 <MessageSquare className="w-4 h-4 text-blue-900" />
-                <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest">2. Performance Indicator (PI) Comments</h3>
+                <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest">
+                  2. Performance Indicator (PI) Comments
+                  {aiReports && (
+                    <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ml-2">
+                      AI Active
+                    </span>
+                  )}
+                </h3>
               </div>
               <div className={cn(
                 "p-5 border-l-4",
                 !isBelowTarget ? "bg-emerald-50 border-emerald-500 text-emerald-800" : "bg-red-50 border-red-500 text-red-800"
               )}>
-                <p className="text-[11px] font-bold leading-relaxed uppercase tracking-tight">
-                  {!isBelowTarget 
+                <div className="text-[11px] font-bold leading-relaxed uppercase tracking-tight whitespace-pre-wrap font-sans">
+                  {aiReports?.cerComments ? formatMarkdownToJSX(aiReports.cerComments) : formatMarkdownToJSX(!isBelowTarget 
                     ? "The Performance Indicator (PI) for this section has been successfully achieved. The average numeric grade meets or exceeds the institutional target of 70%." 
-                    : "The Performance Indicator (PI) for this section has NOT been achieved. The average numeric grade falls below the institutional target of 70%."
+                    : "The Performance Indicator (PI) for this section has NOT been achieved. The average numeric grade falls below the institutional target of 70%.")
                   }
-                </p>
+                </div>
               </div>
             </div>
 
@@ -1505,30 +1599,46 @@ export function FinalReport({
             )}>
               <div className="flex items-center gap-2 mb-4 border-l-4 border-slate-400 pl-3">
                 <AlertCircle className={cn("w-4 h-4", isBelowTarget ? "text-red-600" : "text-slate-400")} />
-                <h3 className={cn("text-xs font-black uppercase tracking-widest", isBelowTarget ? "text-red-900" : "text-slate-400")}>3. Explanation for level of achievement below target</h3>
+                <h3 className={cn("text-xs font-black uppercase tracking-widest", isBelowTarget ? "text-red-900" : "text-slate-400")}>
+                  3. Explanation for level of achievement below target
+                  {aiReports && (
+                    <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ml-2">
+                      AI Active
+                    </span>
+                  )}
+                </h3>
               </div>
-              <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
-                {isBelowTarget ? (
-                  <>The overall average numeric grade is <strong>{avgScore}%</strong>, which is below the 70% target. This shortfall is primarily caused by assessment difficulties encountered in advanced modules, inconsistent attendance patterns, frequent tardiness, low classroom participation, students who are repeaters, students with a poor background in Math, lack of focus, and excessive mobile usage during sessions.</>
+              <div className="text-[11px] text-slate-700 leading-relaxed font-medium whitespace-pre-wrap font-sans">
+                {aiReports?.cerExplanation ? (
+                  formatMarkdownToJSX(aiReports.cerExplanation)
+                ) : isBelowTarget ? (
+                  formatMarkdownToJSX(`The overall average numeric grade is ${avgScore || "0.0"}%, which is below the 70% target. This shortfall is primarily caused by assessment difficulties encountered in advanced modules, inconsistent attendance patterns, frequent tardiness, low classroom participation, students who are repeaters, students with a poor background in Math, lack of focus, and excessive mobile usage during sessions.`)
                 ) : (
-                  <>The Performance Indicator (PI) has been achieved as the average grade meets the target criteria. No additional explanation for shortfall is required at this stage.</>
+                  formatMarkdownToJSX("The Performance Indicator (PI) has been achieved as the average grade meets the target criteria. No additional explanation for shortfall is required at this stage.")
                 )}
-              </p>
+              </div>
             </div>
 
             {/* Section 4: Recommendations */}
             <div className="bg-white border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4 border-l-4 border-blue-900 pl-3">
                 <Lightbulb className="w-4 h-4 text-amber-600" />
-                <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest">4. Instructor recommendations to resolve low achievement</h3>
+                <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest">
+                  4. Instructor recommendations to resolve low achievement
+                  {aiReports && (
+                    <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ml-2">
+                      AI Active
+                    </span>
+                  )}
+                </h3>
               </div>
               <div className="bg-amber-50/30 p-4 border border-amber-100/50">
-                <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
-                  {isBelowTarget 
+                <div className="text-[11px] text-slate-700 leading-relaxed font-medium whitespace-pre-wrap font-sans">
+                  {aiReports?.cerRecommendations ? formatMarkdownToJSX(aiReports.cerRecommendations) : formatMarkdownToJSX(isBelowTarget 
                     ? "To address the observed performance challenges, I recommend: 1) Implementing a structured attendance monitoring and intervention system, 2) Conducting targeted tutorials to overcome assessment difficulties in advanced modules, 3) Incentivizing classroom participation to boost engagement, and 4) Providing academic support and guidance for students struggling with foundational Math or behavioral issues." 
-                    : "The achievement is satisfactory. Continue with the current teaching methodology and maintain regular progress monitoring for students at the threshold of the target to ensure sustained quality."
+                    : "The achievement is satisfactory. Continue with the current teaching methodology and maintain regular progress monitoring for students at the threshold of the target to ensure sustained quality.")
                   }
-                </p>
+                </div>
               </div>
             </div>
 
@@ -1539,11 +1649,18 @@ export function FinalReport({
                </div>
               <div className="flex items-center gap-2 mb-4 border-l-4 border-blue-900 pl-3">
                 <Target className="w-4 h-4 text-blue-900" />
-                <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest relative z-10">5. Overall instructor view and plans for improvement</h3>
+                <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest relative z-10">
+                  5. Overall instructor view and plans for improvement
+                  {aiReports && (
+                    <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ml-2">
+                      AI Active
+                    </span>
+                  )}
+                </h3>
               </div>
-              <p className="text-[11px] text-slate-700 leading-relaxed font-medium italic relative z-10">
-                "The course content and assessments are generally sound and aligned with learning outcomes. Future planning will focus on improving student engagement and participation to ensure consistent achievement of performance indicators across all future sections of this course, with specific emphasis on early identification of at-risk students."
-              </p>
+              <div className="text-[11px] text-slate-700 leading-relaxed font-medium italic relative z-10 whitespace-pre-wrap font-sans">
+                {aiReports?.cerOverallView ? formatMarkdownToJSX(`"${aiReports.cerOverallView}"`) : formatMarkdownToJSX(`"The course content and assessments are generally sound and aligned with learning outcomes. Future planning will focus on improving student engagement and participation to ensure consistent achievement of performance indicators across all future sections of this course, with specific emphasis on early identification of at-risk students."`)}
+              </div>
             </div>
           </div>
         </div>

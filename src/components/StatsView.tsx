@@ -79,6 +79,41 @@ import { ClfsLogo } from './ClfsLogo';
 import { FloatingFeedback } from './FloatingFeedback';
 import { cleanInstructorText } from './GradeTable';
 
+export function formatMarkdownToJSX(text: string | null | undefined): React.ReactNode {
+  if (!text) return null;
+  let cleaned = text;
+  // Clean up empty double asterisks blocks (e.g. "** **" or "****")
+  cleaned = cleaned.replace(/\*\*\s*\*\*/g, " ");
+  // Clean up triple/quadruple asterisks
+  cleaned = cleaned.replace(/\*{3,}/g, "**");
+  
+  // Ensure even double asterisks pairs
+  const occurrences = (cleaned.match(/\*\*/g) || []).length;
+  if (occurrences % 2 !== 0) {
+    cleaned = cleaned + "**";
+  }
+
+  const parts = cleaned.split("**");
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (index % 2 === 1) {
+          if (!part.trim()) return null;
+          return (
+            <strong 
+              key={index} 
+              className="font-extrabold text-[#006056] bg-yellow-101 bg-yellow-100/60 dark:bg-yellow-900/20 px-1 py-0.5 rounded-sm border border-yellow-200/50 inline-block font-sans"
+            >
+              {part}
+            </strong>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+}
+
 interface StatsViewProps {
   students: StudentData[];
   courseCode: string;
@@ -120,7 +155,59 @@ export function StatsView({ students, courseCode, section, semester, user, onBac
   const [feedback, setFeedback] = React.useState<{ id: string; message: string } | null>(null);
   const [isReminderDialogOpen, setIsReminderDialogOpen] = React.useState(false);
   const [isCerDialogOpen, setIsCerDialogOpen] = React.useState(false);
-  const [cerSections, setCerSections] = React.useState<{title: string, content: string}[]>([]);
+  const [aiReports, setAiReports] = React.useState<{
+    categoryPerformance: string;
+    descriptiveAnalysis: string;
+    genderDemographics: string;
+    completionInsights: string;
+    cerComments: string;
+    cerExplanation: string;
+    cerRecommendations: string;
+    cerOverallView: string;
+  } | null>(() => {
+    try {
+      const saved = localStorage.getItem(`ai_reports_${courseCode}_${section}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [cerSections, setCerSections] = React.useState<{title: string, content: string}[]>(() => {
+    try {
+      const saved = localStorage.getItem(`ai_reports_${courseCode}_${section}`);
+      const ai = saved ? JSON.parse(saved) : null;
+      if (ai) {
+        // Calculate dynamic average score from students info
+        const totalMale = students.filter(s => s.gender === 'M').length;
+        const totalFemale = students.filter(s => s.gender === 'F').length;
+        
+        let totalScoreSum = 0;
+        let countWithScore = 0;
+        students.forEach(s => {
+          const fv = calculateFinalValues(s);
+          const val = parseFloat(fv.finallyValue);
+          if (!isNaN(val)) {
+            totalScoreSum += val;
+            countWithScore++;
+          }
+        });
+        const avgScore = countWithScore > 0 ? (totalScoreSum / countWithScore).toFixed(1) : "0.0";
+        const simpleStatsInfo = `No. of Sections: 1\nAverage Grades of Sections: ${avgScore}%`;
+        return [
+          { title: "Statistical Analysis", content: simpleStatsInfo },
+          { title: "Comments", content: ai.cerComments },
+          { title: "Explanation for level of achievement below target", content: ai.cerExplanation },
+          { title: "Instructor recommendations to resolve low achievement", content: ai.cerRecommendations },
+          { title: "Overall instructor view and plans for improvement", content: ai.cerOverallView },
+        ];
+      }
+    } catch (e) {
+      console.warn("Failed to load initial CER sections from localStorage", e);
+    }
+    return [];
+  });
+  const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
   const [selectedTask, setSelectedTask] = React.useState<any>(null);
   const [isSending, setIsSending] = React.useState(false);
   const [reminderMessage, setReminderMessage] = React.useState('');
@@ -1314,11 +1401,18 @@ KPI Rating: ${parseFloat(stats.passRate) >= 90 ? 'GOLD' : parseFloat(stats.passR
             {/* Descriptive Analysis Report */}
             <div className="bg-slate-100 p-8 border border-slate-300 shadow-sm space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Descriptive Analysis Report</h3>
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                  Descriptive Analysis Report
+                  {aiReports && (
+                    <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
+                      AI GENERATED
+                    </span>
+                  )}
+                </h3>
                 <div className="flex items-center gap-4">
                   <CopyButton 
                     title="Descriptive Report" 
-                    text={`Descriptive Analysis Report - ${courseCode} (${section})
+                    text={aiReports ? aiReports.descriptiveAnalysis : `Descriptive Analysis Report - ${courseCode} (${section})
 
 Section Performance: ${
                       (parseFloat(stats.passRate) >= 90 || parseFloat(stats.avgScore) >= 85) ? 'Excellent' :
@@ -1351,53 +1445,70 @@ Male Performance: Of the ${stats.genderStats.male.total} male students, ${stats.
 Female Performance: With ${stats.genderStats.female.total} enrolled female students and ${stats.genderStats.female.pass} passing (${stats.genderStats.female.total > 0 ? ((stats.genderStats.female.pass / stats.genderStats.female.total) * 100).toFixed(1) : 0}%), the cohort shows a ${safeFixed(Math.abs(((stats.genderStats.male.pass / (stats.genderStats.male.total || 1)) - (stats.genderStats.female.pass / (stats.genderStats.female.total || 1))) * 100))}% variance between gender-based performance metrics.`}                
                   />
                   <div className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest border-2 ${
-                    (parseFloat(stats.passRate) >= 90 || parseFloat(stats.avgScore) >= 85) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    (parseFloat(stats.passRate) >= 80 || parseFloat(stats.avgScore) >= 75) ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    (parseFloat(stats.passRate) >= 55 || parseFloat(stats.avgScore) >= 65) ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                    'bg-red-50 text-red-700 border-red-200'
+                    aiReports && aiReports.categoryPerformance ? (
+                      aiReports.categoryPerformance.includes("EXCELLENT") ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      aiReports.categoryPerformance.includes("GOOD") ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      aiReports.categoryPerformance.includes("SATISFACTORY") ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-red-50 text-red-700 border-red-200'
+                    ) : (
+                      (parseFloat(stats.passRate) >= 90 || parseFloat(stats.avgScore) >= 85) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      (parseFloat(stats.passRate) >= 80 || parseFloat(stats.avgScore) >= 75) ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      (parseFloat(stats.passRate) >= 55 || parseFloat(stats.avgScore) >= 65) ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-red-50 text-red-700 border-red-200'
+                    )
                   }`}>
                     Section Performance: {
-                      (parseFloat(stats.passRate) >= 90 || parseFloat(stats.avgScore) >= 85) ? 'Excellent' :
-                      (parseFloat(stats.passRate) >= 80 || parseFloat(stats.avgScore) >= 75) ? 'Good' :
-                      (parseFloat(stats.passRate) >= 55 || parseFloat(stats.avgScore) >= 65) ? 'Satisfactory' :
-                      'Needs Attention'
+                      aiReports ? aiReports.categoryPerformance : (
+                        (parseFloat(stats.passRate) >= 90 || parseFloat(stats.avgScore) >= 85) ? 'Excellent' :
+                        (parseFloat(stats.passRate) >= 80 || parseFloat(stats.avgScore) >= 75) ? 'Good' :
+                        (parseFloat(stats.passRate) >= 55 || parseFloat(stats.avgScore) >= 65) ? 'Satisfactory' :
+                        'Needs Attention'
+                      )
                     }
                   </div>
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-slate-700 font-sans leading-relaxed">
-                <div className="space-y-4">
-                  <p>
-                    A comprehensive analysis of the <strong>{stats.totalStudents}</strong> enrolled students illustrates a clear performance trajectory for this section. 
-                    The current passing rate stands at <strong>{stats.passRate}%</strong>, which suggests a {
-                      parseFloat(stats.passRate) >= 85 ? 'highly successful mastery of the core competencies' :
-                      parseFloat(stats.passRate) >= 70 ? 'solid understanding and engagement with the curriculum' :
-                      'significant opportunity for instructional intervention and reinforcement'
-                    }.
-                  </p>
-                  <p>
-                    Qualitatively, the grade distribution reflects a <strong>{
-                      (stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0) > stats.totalStudents * 0.3 ? 'top-heavy performance curve' :
-                      (stats.grades['C'] || 0) + (stats.grades['C-'] || 0) > stats.totalStudents * 0.4 ? 'centered distribution' :
-                      'varied academic range'
-                    }</strong>. We observe that <strong>{(stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0)}</strong> students achieved high distinction (Excellent), while <strong>{stats.failCount || 0}</strong> students currently fall below the required threshold for proficiency.
-                  </p>
-                </div>
-                
-                <div className="space-y-4">
-                  <p>
-                    The statistical dispersion is captured by an average grade of <strong>{stats.avgScore || '0.0'}</strong>, anchored by a high of <strong>{stats.maxScore || '0.0'}</strong> and a low of <strong>{stats.minScore || '0.0'}</strong>. 
-                    This <strong>{String((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0))} point spread</strong> indicates {
-                      (parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0) > 40 ? 'a wide variance in student readiness and background knowledge' :
-                      'a relatively cohesive academic standing across the cohort'
-                    }.
-                  </p>
-                  <p>
-                    Critical data points include <strong>{stats.faCount} students ({safeFixed(stats.faCount / stats.totalStudents * 100)}%)</strong> with 'FA' (Failure due to Absence) status, representing a primary risk factor for overall section statistics. 
-                    Furthermore, the at-risk population (scoring below 27.5/50) encompasses <strong>{atRiskDist.atRiskCount}</strong> students, requiring immediate focused feedback sessions.
-                  </p>
-                </div>
+                {aiReports ? (
+                  <div className="md:col-span-2 whitespace-pre-wrap font-sans text-xs leading-relaxed p-6 bg-white border border-teal-100 rounded-sm shadow-sm">
+                    {formatMarkdownToJSX(aiReports.descriptiveAnalysis)}
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <p>
+                        A comprehensive analysis of the <strong>{stats.totalStudents}</strong> enrolled students illustrates a clear performance trajectory for this section. 
+                        The current passing rate stands at <strong>{stats.passRate}%</strong>, which suggests a {
+                          parseFloat(stats.passRate) >= 85 ? 'highly successful mastery of the core competencies' :
+                          parseFloat(stats.passRate) >= 70 ? 'solid understanding and engagement with the curriculum' :
+                          'significant opportunity for instructional intervention and reinforcement'
+                        }.
+                      </p>
+                      <p>
+                        Qualitatively, the grade distribution reflects a <strong>{
+                          (stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0) > stats.totalStudents * 0.3 ? 'top-heavy performance curve' :
+                          (stats.grades['C'] || 0) + (stats.grades['C-'] || 0) > stats.totalStudents * 0.4 ? 'centered distribution' :
+                          'varied academic range'
+                        }</strong>. We observe that <strong>{(stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0)}</strong> students achieved high distinction (Excellent), while <strong>{stats.failCount || 0}</strong> students currently fall below the required threshold for proficiency.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <p>
+                        The statistical dispersion is captured by an average grade of <strong>{stats.avgScore || '0.0'}</strong>, anchored by a high of <strong>{stats.maxScore || '0.0'}</strong> and a low of <strong>{stats.minScore || '0.0'}</strong>. 
+                        This <strong>{String((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0))} point spread</strong> indicates {
+                          (parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0) > 40 ? 'a wide variance in student readiness and background knowledge' :
+                          'a relatively cohesive academic standing across the cohort'
+                        }.
+                      </p>
+                      <p>
+                        Critical data points include <strong>{stats.faCount} students ({safeFixed(stats.faCount / stats.totalStudents * 100)}%)</strong> with 'FA' (Failure due to Absence) status, representing a primary risk factor for overall section statistics. 
+                        Furthermore, the at-risk population (scoring below 27.5/50) encompasses <strong>{atRiskDist.atRiskCount}</strong> students, requiring immediate focused feedback sessions.
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div className="md:col-span-2 mt-2 p-6 bg-white border-2 border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -1406,27 +1517,38 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
                   <h4 className="font-black text-blue-900 text-[11px] uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     Gender Demographics & Comparative Outcomes
+                    {aiReports && (
+                      <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ml-2">
+                        AI REPORT ACTIVE
+                      </span>
+                    )}
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-2">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Male Performance</span>
-                        <span className="text-lg font-black text-blue-600">{stats.genderStats.male.total > 0 ? ((stats.genderStats.male.pass / stats.genderStats.male.total) * 100).toFixed(1) : 0}%</span>
-                      </div>
-                      <p className="text-xs text-slate-600 leading-normal">
-                        Of the <strong>{stats.genderStats.male.total}</strong> male students, <strong>{stats.genderStats.male.pass}</strong> achieved a passing status. This demographic accounts for <strong>{safeFixed(stats.genderStats.male.total / stats.totalStudents * 100)}%</strong> of the total population.
-                      </p>
+                  {aiReports ? (
+                    <div className="whitespace-pre-wrap font-sans text-xs leading-relaxed p-6 bg-slate-50 border border-slate-200 rounded-sm">
+                      {formatMarkdownToJSX(aiReports.genderDemographics)}
                     </div>
-                    <div className="space-y-2 border-l border-slate-100 pl-8">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Female Performance</span>
-                        <span className="text-lg font-black text-emerald-600">{stats.genderStats.female.total > 0 ? ((stats.genderStats.female.pass / stats.genderStats.female.total) * 100).toFixed(1) : 0}%</span>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-2">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Male Performance</span>
+                          <span className="text-lg font-black text-blue-600">{stats.genderStats.male.total > 0 ? ((stats.genderStats.male.pass / stats.genderStats.male.total) * 100).toFixed(1) : 0}%</span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-normal">
+                          Of the <strong>{stats.genderStats.male.total}</strong> male students, <strong>{stats.genderStats.male.pass}</strong> achieved a passing status. This demographic accounts for <strong>{safeFixed(stats.genderStats.male.total / stats.totalStudents * 100)}%</strong> of the total population.
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 leading-normal">
-                        With <strong>{stats.genderStats.female.total}</strong> enrolled female students and <strong>{stats.genderStats.female.pass}</strong> passing, the cohort shows a <strong>{safeFixed(Math.abs(((stats.genderStats.male.pass / (stats.genderStats.male.total || 1)) - (stats.genderStats.female.pass / (stats.genderStats.female.total || 1))) * 100))}% variance</strong> between gender-based performance metrics.
-                      </p>
+                      <div className="space-y-2 border-l border-slate-100 pl-8">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Female Performance</span>
+                          <span className="text-lg font-black text-emerald-600">{stats.genderStats.female.total > 0 ? ((stats.genderStats.female.pass / stats.genderStats.female.total) * 100).toFixed(1) : 0}%</span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-normal">
+                          With <strong>{stats.genderStats.female.total}</strong> enrolled female students and <strong>{stats.genderStats.female.pass}</strong> passing, the cohort shows a <strong>{safeFixed(Math.abs(((stats.genderStats.male.pass / (stats.genderStats.male.total || 1)) - (stats.genderStats.female.pass / (stats.genderStats.female.total || 1))) * 100))}% variance</strong> between gender-based performance metrics.
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1524,10 +1646,23 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
               </div>
 
               <div className="lg:col-span-2 bg-slate-100 p-8 border border-slate-300 shadow-sm space-y-4 h-full">
-                <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest border-l-4 border-emerald-500 pl-4 py-1">Completion Insights</h3>
-                <p className="text-sm text-slate-700 leading-relaxed font-sans">
-                  The overall completion rate for all assessments across this section is <strong className="text-emerald-700 font-bold">{stats.averageCompletion}%</strong>. 
-                </p>
+                <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest border-l-4 border-[#00786f] pl-4 py-1 flex items-center justify-between">
+                  Completion Insights
+                  {aiReports && (
+                    <span className="bg-[#00786f] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
+                      AI GENERATED
+                    </span>
+                  )}
+                </h3>
+                {aiReports ? (
+                  <div className="whitespace-pre-wrap font-sans text-xs leading-relaxed p-6 bg-white border border-teal-100 rounded-sm shadow-sm">
+                    {formatMarkdownToJSX(aiReports.completionInsights)}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-700 leading-relaxed font-sans">
+                    The overall completion rate for all assessments across this section is <strong className="text-emerald-700 font-bold">{stats.averageCompletion}%</strong>. 
+                  </p>
+                )}
                 <div className="p-4 bg-emerald-50 border border-emerald-100">
                   <p className="text-xs text-emerald-800 leading-relaxed italic">
                     High completion rates generally correlate with better academic outcomes.
@@ -1688,19 +1823,19 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
                   // Simple information display
                   const simpleStatsInfo = `No. of Sections: 1\nAverage Grades of Sections: ${stats.avgScore}%`;
 
-                  const piComment = !isBelowTarget 
+                  const piComment = aiReports?.cerComments || (!isBelowTarget 
                     ? "The PI has been achieved." 
-                    : "The PI has not been achieved.";
+                    : "The PI has not been achieved.");
 
-                  const cerExplanation = isBelowTarget
+                  const cerExplanation = aiReports?.cerExplanation || (isBelowTarget
                     ? `The overall average numeric grade is ${stats.avgScore}%, which is below the 70% target. This shortfall is primarily caused by assessment difficulties encountered in advanced modules, inconsistent attendance patterns, frequent tardiness, low classroom participation, students who are repeaters, students with a poor background in Math, lack of focus, and excessive mobile usage during sessions.`
-                    : "The PI has been achieved as the average grade meets the target criteria.";
+                    : "The PI has been achieved as the average grade meets the target criteria.");
 
-                  const cerRecommendations = isBelowTarget
+                  const cerRecommendations = aiReports?.cerRecommendations || (isBelowTarget
                     ? "To address the observed performance challenges, I recommend the following: 1) Implementing a structured attendance monitoring and intervention system, 2) Conducting targeted tutorials to overcome assessment difficulties in advanced modules, 3) Incentivizing classroom participation to boost engagement, and 4) Providing academic support and guidance for students struggling with foundational Math or behavioral issues, such as tardiness, focus, or mobile usage."
-                    : "The achievement is satisfactory. Continue with the current teaching methodology and monitor student progress regularly.";
+                    : "The achievement is satisfactory. Continue with the current teaching methodology and monitor student progress regularly.");
 
-                  const cerOverallView = "The course content and assessments are generally sound. Future planning will focus on improving student engagement and participation to ensure consistent achievement of performance indicators across all sections.";
+                  const cerOverallView = aiReports?.cerOverallView || "The course content and assessments are generally sound. Future planning will focus on improving student engagement and participation to ensure consistent achievement of performance indicators across all sections.";
 
                   setCerSections([
                     { title: "Statistical Analysis", content: simpleStatsInfo },
@@ -1761,8 +1896,8 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
                       Copy
                     </Button>
                   </div>
-                  <div className="bg-slate-50 p-4 border border-slate-200 text-xs font-mono whitespace-pre-wrap rounded-sm shadow-sm transition-all group-hover:border-blue-200">
-                    {section.content}
+                  <div className="bg-slate-50 p-4 border border-slate-200 text-xs font-medium whitespace-pre-wrap rounded-sm shadow-sm transition-all group-hover:border-blue-200 leading-relaxed font-sans text-slate-800">
+                    {formatMarkdownToJSX(section.content)}
                   </div>
                 </div>
               ))}
@@ -1788,6 +1923,105 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* AI Copilot & Reports generator */}
+        {activeTab !== 'raw' && activeTab !== 'atrisk' && (
+          <div className="px-10 py-4 no-print shrink-0">
+            <div className="bg-[#00786f]/10 border-2 border-[#00786f]/20 rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[#00786f] text-white rounded-xl shadow-md">
+                  <Calculator className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-sm font-black text-teal-950 uppercase tracking-wider flex items-center gap-2">
+                    CLFS Academic Copilot
+                    <span className="bg-[#FFEE82] text-teal-950 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
+                      Model: gemini-3.5-flash
+                    </span>
+                  </h3>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                {aiReports && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      localStorage.removeItem(`ai_reports_${courseCode}_${section}`);
+                      setAiReports(null);
+                      toast.info("AI report cleared. Ready to regenerate.");
+                    }}
+                    className="h-10 px-4 text-xs font-black uppercase tracking-wider border-slate-300 text-slate-700 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer bg-white"
+                  >
+                    Reset AI
+                  </Button>
+                )}
+                <Button
+                  onClick={async () => {
+                    setIsGeneratingAi(true);
+                    try {
+                      const response = await fetch('/api/generate-ai-reports', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          courseCode,
+                          courseName: getCourseLabel(courseCode),
+                          section,
+                          stats,
+                          atRiskDist
+                        }),
+                      });
+
+                      if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || "Failed to generate AI report");
+                      }
+
+                      const data = await response.json();
+                      if (data.success) {
+                        localStorage.setItem(`ai_reports_${courseCode}_${section}`, JSON.stringify(data.reports));
+                        setAiReports(data.reports);
+                        toast.success("AI Academic Reports generated successfully!");
+                        
+                        const simpleStatsInfo = `No. of Sections: 1\nAverage Grades of Sections: ${stats.avgScore}%`;
+                        setCerSections([
+                          { title: "Statistical Analysis", content: simpleStatsInfo },
+                          { title: "Comments", content: data.reports.cerComments },
+                          { title: "Explanation for level of achievement below target", content: data.reports.cerExplanation },
+                          { title: "Instructor recommendations to resolve low achievement", content: data.reports.cerRecommendations },
+                          { title: "Overall instructor view and plans for improvement", content: data.reports.cerOverallView },
+                        ]);
+                      } else {
+                        throw new Error("Report generation failed");
+                      }
+                    } catch (error: any) {
+                      console.error(error);
+                      toast.error(error.message || "Could not generate AI report");
+                    } finally {
+                      setIsGeneratingAi(false);
+                    }
+                  }}
+                  disabled={isGeneratingAi}
+                  className="h-10 px-6 text-xs font-black uppercase tracking-widest gap-2 bg-[#FFEE82] text-teal-950 border-2 border-transparent hover:bg-yellow-300 disabled:opacity-50 transition-all shadow-md hover:shadow-lg active:scale-95 rounded-lg cursor-pointer"
+                >
+                  {isGeneratingAi ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-teal-900" />
+                      Generating Insights...
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="w-4 h-4 text-teal-950" />
+                      {aiReports ? "Regenerate AI Report" : "Generate AI Insights"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white border border-slate-200 shadow-xl overflow-hidden relative flex flex-col h-full">
           {/* Simple Header (Matching GradeTable) */}

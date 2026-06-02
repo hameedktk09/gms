@@ -14,13 +14,48 @@ import {
 } from "@/components/ui/tooltip";
 import { StudentData, RAW_MARKS_LIMITS } from '@/src/types';
 import { calculateFinalValues, getPerformanceAnalysisData, getStudentStatus, calculateSummativeValues, generatePetitionResponse } from '@/src/lib/grade-utils';
-import { AlertCircle, CheckCircle2, TrendingUp, BookOpen, AlertTriangle, MessageSquare, Copy, Check, FileDown, Mail, Image as ImageIcon, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, TrendingUp, BookOpen, AlertTriangle, MessageSquare, Copy, Check, FileDown, Mail, Image as ImageIcon, X, Sparkles } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { cn } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import html2canvas from 'html2canvas';
+
+export function formatMarkdownToJSX(text: string | null | undefined): React.ReactNode {
+  if (!text) return null;
+  let cleaned = text;
+  // Clean up empty double asterisks blocks (e.g. "** **" or "****")
+  cleaned = cleaned.replace(/\*\*\s*\*\*/g, " ");
+  // Clean up triple/quadruple asterisks
+  cleaned = cleaned.replace(/\*{3,}/g, "**");
+  
+  // Ensure even double asterisks pairs
+  const occurrences = (cleaned.match(/\*\*/g) || []).length;
+  if (occurrences % 2 !== 0) {
+    cleaned = cleaned + "**";
+  }
+
+  const parts = cleaned.split("**");
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (index % 2 === 1) {
+          if (!part.trim()) return null;
+          return (
+            <strong 
+              key={index} 
+              className="font-extrabold text-[#006056] bg-yellow-101 bg-yellow-100/60 dark:bg-yellow-900/20 px-1 py-0.5 rounded-sm border border-yellow-200/50 inline-block font-sans print:text-slate-950 print:bg-transparent print:border-none print:px-0 print:py-0"
+            >
+              {part}
+            </strong>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+}
 
 interface StudentDetailModalProps {
   student: StudentData | null;
@@ -33,8 +68,21 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
   const [isGenerating, setIsGenerating] = useState(false);
   const [cardCopied, setCardCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [aiRemarks, setAiRemarks] = useState<string | null>(null);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   
   const pa = student ? getPerformanceAnalysisData(student) : null;
+
+  useEffect(() => {
+    if (isOpen && student) {
+      const saved = localStorage.getItem(`ai_student_remarks_${student.id}`);
+      if (saved) {
+        setAiRemarks(saved);
+      } else {
+        setAiRemarks(null);
+      }
+    }
+  }, [isOpen, student]);
   
   useEffect(() => {
     if (isOpen && student && pa) {
@@ -67,7 +115,47 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
   const status = getStudentStatus(student, parseFloat(fv.totalScore) || 0);
   const isAtRisk = pa.overallStatus === 'At-Risk';
   
-  const remarks = generatePetitionResponse(student) || 'No remarks.';
+  const handleGenerateAiRemarks = async () => {
+    if (!student || !pa) return;
+    setIsGeneratingAi(true);
+    try {
+      const response = await fetch('/api/generate-student-remarks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student,
+          fv,
+          sv,
+          pa,
+          status,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to generate remarks");
+      }
+
+      const data = await response.json();
+      if (data.success && data.remarks) {
+        setAiRemarks(data.remarks);
+        localStorage.setItem(`ai_student_remarks_${student.id}`, data.remarks);
+        toast.success("AI remarks prepared successfully");
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Could not prepare AI remarks");
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  const activeRemarks = aiRemarks || generatePetitionResponse(student) || 'No remarks.';
+  const remarks = activeRemarks; // match existing binding for card export
   const headerColor = status === 'Pass' ? '#2563eb' : status === 'None' ? '#475569' : '#dc2626';
   const statusText = status === 'Pass' ? 'PASS' : 'NOT PASS';
   const summativeGrades = [
@@ -206,7 +294,7 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
           {/* Header Section */}
         <div className={cn(
           "p-8 text-white shrink-0 transition-colors duration-500",
-          status === 'Pass' ? "bg-blue-600" : 
+          status === 'Pass' ? "bg-[#00786f]" : 
           status === 'None' ? "bg-slate-600" : "bg-red-600"
         )}>
           <div className="flex items-start justify-between">
@@ -217,7 +305,7 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
                   <span className={cn(
                     "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
                     student.gender === 'M' 
-                      ? "bg-blue-100 text-blue-700 border-blue-200" 
+                      ? "bg-teal-50 text-teal-800 border-teal-100" 
                       : "bg-pink-100 text-pink-700 border-pink-200"
                   )}>
                     {student.gender === 'M' ? 'Male' : 'Female'}
@@ -275,14 +363,14 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
                   size="sm" 
                   onClick={handleCopyCard}
                   disabled={isGenerating}
-                  className="bg-slate-100 hover:bg-[#FFEE82] text-slate-700 hover:text-blue-900 border border-slate-300 shadow-sm backdrop-blur-sm transition-all"
+                  className="bg-slate-100 hover:bg-[#FFEE82] text-slate-700 hover:text-teal-950 border border-slate-300 shadow-sm backdrop-blur-sm transition-all"
                 >
                   {isGenerating ? (
                     <div className="w-4 h-4 mr-2 border-2 border-slate-300 border-t-slate-600 animate-spin" />
                   ) : cardCopied ? (
                     <Check className="w-4 h-4 mr-2 text-green-600" />
                   ) : (
-                    <Copy className="w-4 h-4 mr-2 text-blue-600" />
+                    <Copy className="w-4 h-4 mr-2 text-[#00786f]" />
                   )}
                   {cardCopied ? 'Copied!' : 'Copy Card'}
                 </Button>
@@ -290,9 +378,9 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
                   variant="secondary" 
                   size="sm" 
                   onClick={handleOpenOutlook}
-                  className="bg-slate-100 hover:bg-[#FFEE82] text-slate-700 hover:text-blue-900 border border-slate-300 shadow-sm backdrop-blur-sm transition-all"
+                  className="bg-slate-100 hover:bg-[#FFEE82] text-slate-700 hover:text-teal-950 border border-slate-300 shadow-sm backdrop-blur-sm transition-all"
                 >
-                  <Mail className="w-4 h-4 mr-2 text-blue-600" />
+                  <Mail className="w-4 h-4 mr-2 text-[#00786f]" />
                   ASU Email
                 </Button>
               </div>
@@ -355,18 +443,18 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
 
           {/* Top Row: Performance & Attendance */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            {/* Performance Metrics */}
+             {/* Performance Metrics */}
             <div className="lg:col-span-3 space-y-4">
               <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <TrendingUp className="w-5 h-5 text-[#00786f]" />
                 Current Performance
               </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Tooltip>
                     <TooltipTrigger render={
-                      <div className="flex items-stretch justify-between border border-blue-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group cursor-help">
-                        <div className="p-4 bg-blue-50/50 border-r border-blue-100 flex-1 flex items-center min-w-0">
-                          <span className="text-[10px] font-bold text-blue-800 uppercase tracking-widest leading-tight truncate">Total Score & Grade</span>
+                      <div className="flex items-stretch justify-between border border-teal-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group cursor-help">
+                        <div className="p-4 bg-teal-50/50 border-r border-teal-100 flex-1 flex items-center min-w-0">
+                          <span className="text-[10px] font-bold text-teal-800 uppercase tracking-widest leading-tight truncate">Total Score & Grade</span>
                         </div>
                         <div className="p-4 flex items-center justify-center bg-white shrink-0 gap-3 min-w-[140px]">
                           <span className={cn(
@@ -387,9 +475,9 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
 
                   <Tooltip>
                     <TooltipTrigger render={
-                      <div className="flex items-stretch justify-between border border-blue-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group cursor-help">
-                        <div className="p-4 bg-blue-50/50 border-r border-blue-100 flex-1 flex items-center min-w-0">
-                          <span className="text-xs font-bold text-blue-700 uppercase tracking-wider leading-tight truncate">Overall Status</span>
+                      <div className="flex items-stretch justify-between border border-teal-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group cursor-help">
+                        <div className="p-4 bg-teal-50/50 border-r border-teal-100 flex-1 flex items-center min-w-0">
+                          <span className="text-xs font-bold text-teal-700 uppercase tracking-wider leading-tight truncate">Overall Status</span>
                         </div>
                         <div className="p-4 flex items-center gap-2 justify-center bg-white shrink-0 min-w-[120px]">
                           {pa.overallStatus === 'At-Risk' ? (
@@ -414,9 +502,9 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
 
                   <Tooltip>
                     <TooltipTrigger render={
-                      <div className="flex items-stretch justify-between border border-blue-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group md:col-span-2 cursor-help">
-                        <div className="p-4 bg-blue-50/50 border-r border-blue-100 flex-1 flex items-center min-w-0">
-                          <span className="text-xs font-bold text-blue-700 uppercase tracking-wider leading-tight truncate">Academic Standing</span>
+                      <div className="flex items-stretch justify-between border border-teal-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group md:col-span-2 cursor-help">
+                        <div className="p-4 bg-teal-50/50 border-r border-teal-100 flex-1 flex items-center min-w-0">
+                          <span className="text-xs font-bold text-teal-700 uppercase tracking-wider leading-tight truncate">Academic Standing</span>
                         </div>
                         <div className="p-4 flex items-center gap-2 justify-center bg-white shrink-0 min-w-[120px]">
                           {pa.academicAtRiskCount > 0 ? (
@@ -502,7 +590,7 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
                       <span className="text-xs font-bold text-slate-600 uppercase tracking-wider leading-tight truncate">
                         {grade.label}
                       </span>
-                      <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">[{grade.weight}]</span>
+                      <span className="bg-[#00786f] text-white px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">[{grade.weight}]</span>
                     </div>
                     <div className="p-4 flex items-center justify-center bg-white shrink-0 min-w-[70px]">
                       {grade.value ? (
@@ -524,21 +612,56 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
 
           {/* Petition Response Statement */}
           {(() => {
-            const response = generatePetitionResponse(student);
-            if (!response) return null;
+            const defaultResponse = generatePetitionResponse(student);
+            if (!defaultResponse && !aiRemarks) return null;
             
             return (
               <div className="space-y-4">
-                <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-teal-500" />
-                  Instructor Remarks
-                </h3>
-                <div className="bg-teal-50 p-8 border border-teal-100 shadow-sm relative group">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-teal-500" />
+                    Instructor Remarks
+                  </h3>
+                  
+                  <div className="flex items-center gap-2">
+                    {aiRemarks && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          localStorage.removeItem(`ai_student_remarks_${student.id}`);
+                          setAiRemarks(null);
+                          toast.info("AI remarks reset to standard template.");
+                        }}
+                        className="h-8 text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600 bg-white hover:bg-slate-50 cursor-pointer"
+                      >
+                        Reset to Std
+                      </Button>
+                    )}
+                    <Button
+                      variant={aiRemarks ? "outline" : "default"}
+                      size="sm"
+                      disabled={isGeneratingAi}
+                      onClick={handleGenerateAiRemarks}
+                      className={cn(
+                        "h-8 text-[10px] font-black uppercase tracking-wider gap-1.5 cursor-pointer shadow-sm transition-all",
+                        aiRemarks 
+                          ? "border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100/50" 
+                          : "bg-teal-600 hover:bg-teal-700 text-white"
+                      )}
+                    >
+                      <Sparkles className={cn("w-3.5 h-3.5", isGeneratingAi && "animate-spin text-amber-500")} />
+                      {isGeneratingAi ? "Preparing..." : aiRemarks ? "Regenerate AI" : "Prepare AI Remarks"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="bg-teal-50/50 p-6 border border-teal-100 rounded-sm shadow-sm relative group">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => handleCopy(response)}
-                    className="absolute top-4 right-4 h-8 text-[11px] font-bold uppercase tracking-widest gap-2 border-slate-300 text-slate-700 bg-slate-100 hover:bg-[#FFEE82] hover:border-[#FFEE82] hover:text-blue-900 transition-all shadow-sm"
+                    onClick={() => handleCopy(activeRemarks)}
+                    className="absolute top-4 right-4 h-8 text-[11px] font-bold uppercase tracking-widest gap-2 border-slate-300 text-slate-700 bg-white hover:bg-[#FFEE82] hover:border-[#FFEE82] hover:text-teal-950 transition-all shadow-sm z-10 cursor-pointer"
                   >
                     {copied ? (
                       <>
@@ -547,14 +670,22 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
                       </>
                     ) : (
                       <>
-                        <Copy className="w-4 h-4 text-blue-600" />
+                        <Copy className="w-4 h-4 text-[#00786f]" />
                         COPY
                       </>
                     )}
                   </Button>
-                  <p className="text-lg leading-relaxed text-slate-800 font-medium pr-24">
-                    {response}
-                  </p>
+                  {isGeneratingAi ? (
+                    <div className="py-4 space-y-2">
+                      <div className="h-4 bg-teal-100/60 rounded-sm animate-pulse w-3/4"></div>
+                      <div className="h-4 bg-teal-100/60 rounded-sm animate-pulse w-5/6"></div>
+                      <div className="h-4 bg-teal-100/60 rounded-sm animate-pulse w-1/2"></div>
+                    </div>
+                  ) : (
+                    <div className="text-sm leading-relaxed text-slate-800 font-medium pr-24 font-sans whitespace-pre-wrap">
+                      {formatMarkdownToJSX(activeRemarks)}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -629,7 +760,7 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
 
             <div style={{ background: '#fdf4ff', padding: '24px', borderRadius: '0px', border: '1px solid #f3e8ff' }}>
               <h3 style={{ margin: '0 0 12px 0', fontSize: '13px', textTransform: 'uppercase', color: '#9333ea', fontWeight: 'bold' }}>Instructor Remarks</h3>
-              <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.6, color: '#4c1d95' }}>{remarks}</p>
+              <div style={{ margin: 0, fontSize: '14px', lineHeight: 1.6, color: '#4c1d95' }}>{formatMarkdownToJSX(remarks)}</div>
             </div>
           </div>
         </div>
