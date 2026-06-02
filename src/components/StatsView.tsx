@@ -35,7 +35,8 @@ import {
   Send,
   Loader2,
   Search,
-  Copy
+  Copy,
+  Sparkles
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1814,6 +1815,90 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
             </TabsList>
             
             <div className="h-6 w-px bg-white/10 mx-1" />
+
+            {/* AI Generator Buttons */}
+            {aiReports && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  localStorage.removeItem(`ai_reports_${courseCode}_${section}`);
+                  setAiReports(null);
+                  toast.info("AI report cleared.");
+                }}
+                className="h-[32px] px-3.5 text-[11px] font-bold uppercase tracking-widest text-teal-100 hover:text-white bg-white/5 border border-white/10 hover:bg-white/15 rounded-md cursor-pointer transition-all active:scale-95"
+              >
+                Reset AI
+              </Button>
+            )}
+
+            <Button
+              onClick={async () => {
+                setIsGeneratingAi(true);
+                try {
+                  const response = await fetch('/api/generate-ai-reports', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      courseCode,
+                      courseName: getCourseLabel(courseCode),
+                      section,
+                      stats,
+                      atRiskDist
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "Failed to generate AI report");
+                  }
+
+                  const data = await response.json();
+                  if (data.success) {
+                    localStorage.setItem(`ai_reports_${courseCode}_${section}`, JSON.stringify(data.reports));
+                    setAiReports(data.reports);
+                    toast.success("AI Academic Reports generated successfully!");
+                    
+                    const simpleStatsInfo = `No. of Sections: 1\nAverage Grades of Sections: ${stats.avgScore}%`;
+                    setCerSections([
+                      { title: "Statistical Analysis", content: simpleStatsInfo },
+                      { title: "Comments", content: data.reports.cerComments },
+                      { title: "Explanation for level of achievement below target", content: data.reports.cerExplanation },
+                      { title: "Instructor recommendations to resolve low achievement", content: data.reports.cerRecommendations },
+                      { title: "Overall instructor view and plans for improvement", content: data.reports.cerOverallView },
+                    ]);
+                  } else {
+                    throw new Error("Report generation failed");
+                  }
+                } catch (error: any) {
+                  console.error(error);
+                  toast.error(error.message || "Could not generate AI report");
+                } finally {
+                  setIsGeneratingAi(false);
+                }
+              }}
+              disabled={isGeneratingAi}
+              className={`h-[32px] px-3.5 text-[11px] font-black uppercase tracking-widest gap-1.5 transition-all shadow-sm rounded-md cursor-pointer flex items-center justify-center ${
+                aiReports 
+                  ? "bg-teal-600 hover:bg-teal-500 text-white border border-teal-500/30" 
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95"
+              }`}
+            >
+              {isGeneratingAi ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                  Preparing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
+                  {aiReports ? "Regenerate AI" : "Prepare AI Reports"}
+                </>
+              )}
+            </Button>
+
+            <div className="h-6 w-px bg-white/10 mx-1" />
             
             <Button 
                 onClick={() => {
@@ -1924,111 +2009,14 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
           </DialogContent>
         </Dialog>
 
-        {/* AI Copilot & Reports generator */}
-        {activeTab !== 'raw' && activeTab !== 'atrisk' && (
-          <div className="px-10 py-4 no-print shrink-0">
-            <div className="bg-[#00786f]/10 border-2 border-[#00786f]/20 rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-[#00786f] text-white rounded-xl shadow-md">
-                  <Calculator className="w-6 h-6 animate-pulse" />
-                </div>
-                <div className="text-left">
-                  <h3 className="text-sm font-black text-teal-950 uppercase tracking-wider flex items-center gap-2">
-                    CLFS Academic Copilot
-                    <span className="bg-[#FFEE82] text-teal-950 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
-                      Model: gemini-3.5-flash
-                    </span>
-                  </h3>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                {aiReports && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      localStorage.removeItem(`ai_reports_${courseCode}_${section}`);
-                      setAiReports(null);
-                      toast.info("AI report cleared. Ready to regenerate.");
-                    }}
-                    className="h-10 px-4 text-xs font-black uppercase tracking-wider border-slate-300 text-slate-700 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer bg-white"
-                  >
-                    Reset AI
-                  </Button>
-                )}
-                <Button
-                  onClick={async () => {
-                    setIsGeneratingAi(true);
-                    try {
-                      const response = await fetch('/api/generate-ai-reports', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          courseCode,
-                          courseName: getCourseLabel(courseCode),
-                          section,
-                          stats,
-                          atRiskDist
-                        }),
-                      });
-
-                      if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.error || "Failed to generate AI report");
-                      }
-
-                      const data = await response.json();
-                      if (data.success) {
-                        localStorage.setItem(`ai_reports_${courseCode}_${section}`, JSON.stringify(data.reports));
-                        setAiReports(data.reports);
-                        toast.success("AI Academic Reports generated successfully!");
-                        
-                        const simpleStatsInfo = `No. of Sections: 1\nAverage Grades of Sections: ${stats.avgScore}%`;
-                        setCerSections([
-                          { title: "Statistical Analysis", content: simpleStatsInfo },
-                          { title: "Comments", content: data.reports.cerComments },
-                          { title: "Explanation for level of achievement below target", content: data.reports.cerExplanation },
-                          { title: "Instructor recommendations to resolve low achievement", content: data.reports.cerRecommendations },
-                          { title: "Overall instructor view and plans for improvement", content: data.reports.cerOverallView },
-                        ]);
-                      } else {
-                        throw new Error("Report generation failed");
-                      }
-                    } catch (error: any) {
-                      console.error(error);
-                      toast.error(error.message || "Could not generate AI report");
-                    } finally {
-                      setIsGeneratingAi(false);
-                    }
-                  }}
-                  disabled={isGeneratingAi}
-                  className="h-10 px-6 text-xs font-black uppercase tracking-widest gap-2 bg-[#FFEE82] text-teal-950 border-2 border-transparent hover:bg-yellow-300 disabled:opacity-50 transition-all shadow-md hover:shadow-lg active:scale-95 rounded-lg cursor-pointer"
-                >
-                  {isGeneratingAi ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-teal-900" />
-                      Generating Insights...
-                    </>
-                  ) : (
-                    <>
-                      <Activity className="w-4 h-4 text-teal-950" />
-                      {aiReports ? "Regenerate AI Report" : "Generate AI Insights"}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="bg-white border border-slate-200 shadow-xl overflow-hidden relative flex flex-col h-full">
           {/* Simple Header (Matching GradeTable) */}
           <div className="w-full px-10 py-6 bg-white border-b border-slate-100 shrink-0">
             <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] items-center gap-12">
               <div className="flex items-center justify-center min-w-[260px] h-[120px]">
-                <ClfsLogo className="w-64 h-auto max-h-28 object-contain" />
+                <ClfsLogo className="w-full h-full max-h-[110px] object-contain" />
               </div>
 
               <div className="flex flex-col items-center justify-center text-center">

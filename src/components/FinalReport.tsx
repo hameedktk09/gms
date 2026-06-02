@@ -501,7 +501,7 @@ export function FinalReport({
             <div className="flex flex-col">
               <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
                 Copyright ©
-                <img src="https://dl.dropboxusercontent.com/scl/fi/xgamq66xi03hy5x4tc296/hrk-logo.png?rlkey=tukma0o5gczvmtxqamrcbz8kw" className="h-[12px] w-auto inline-block" referrerPolicy="no-referrer" />
+                <img src="https://raw.githubusercontent.com/hameedktk09/cms/main/hrk-logo.png" className="h-[12px] w-auto inline-block" referrerPolicy="no-referrer" />
                 drkhan 2026.
               </p>
             </div>
@@ -1708,7 +1708,7 @@ export function FinalReport({
              <div className="flex flex-col">
                <p className="text-[12px] font-black text-slate-800 uppercase tracking-[0.3em] flex items-center gap-1">
                  Copyright © 
-                 <img src="https://dl.dropboxusercontent.com/scl/fi/xgamq66xi03hy5x4tc296/hrk-logo.png?rlkey=tukma0o5gczvmtxqamrcbz8kw" className="h-[14px] w-auto inline-block" referrerPolicy="no-referrer" />
+                 <img src="https://raw.githubusercontent.com/hameedktk09/cms/main/hrk-logo.png" className="h-[14px] w-auto inline-block" referrerPolicy="no-referrer" />
                  drkhan 2026.
                </p>
                <p className="text-[8px] text-slate-400 font-courier mt-1">Authentication Hash: {Math.random().toString(16).substring(2, 10).toUpperCase()}</p>

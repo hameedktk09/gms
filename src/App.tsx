@@ -328,8 +328,11 @@ export default function App() {
   // Automatically switch the course to the registered course when an Instructor logs in
   useEffect(() => {
     if (user && user.role === 'instructor' && user.subject) {
-      if (user.subject === 'English' && currentCourse !== 'FP00000') {
-        setCurrentCourse('FP00000');
+      if (user.subject === 'English') {
+        const englishCourses = ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'];
+        if (!englishCourses.includes(currentCourse)) {
+          setCurrentCourse('FP00000');
+        }
       } else if (user.subject === 'Mathematics' && currentCourse !== 'FPMA001') {
         setCurrentCourse('FPMA001');
       } else if (user.subject === 'Information Technology' && currentCourse !== 'FPIT001') {
@@ -794,7 +797,20 @@ export default function App() {
                       setCourse={setCurrentCourse}
                       section={currentSection}
                       setSection={setCurrentSection}
-                      availableCourses={getAvailableCourses()}
+                      availableCourses={(() => {
+                        const allAvail = getAvailableCourses();
+                        if (user?.role === 'instructor' && user?.subject) {
+                          if (user.subject === 'English') {
+                            const englishCourses = ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'];
+                            return allAvail.filter(c => englishCourses.includes(c));
+                          } else if (user.subject === 'Mathematics') {
+                            return allAvail.filter(c => c === 'FPMA001');
+                          } else if (user.subject === 'Information Technology') {
+                            return allAvail.filter(c => c === 'FPIT001');
+                          }
+                        }
+                        return allAvail;
+                      })()}
                       availableSections={getAvailableSections(currentCourse)}
                       user={user}
                       onLogout={() => {

@@ -75,8 +75,8 @@ export function DashboardHeader({
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] items-start gap-6">
             {/* Left: Logo */}
             <div className="flex items-start justify-center lg:justify-start">
-              <div className="bg-white p-3 border border-slate-200 shadow-sm flex items-center justify-center min-w-[240px] h-[116px] transition-all">
-                <ClfsLogo className="w-48 h-auto max-h-16 object-contain" />
+              <div className="bg-white p-2 border border-slate-200 shadow-sm flex items-center justify-center min-w-[240px] h-[116px] transition-all">
+                <ClfsLogo className="w-56 h-auto max-h-[100px] object-contain" />
               </div>
             </div>
 

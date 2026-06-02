@@ -989,7 +989,7 @@ export function GradeTable({
     
     const headerHtml = `
         <div class="header-info">
-          <img src="https://raw.githubusercontent.com/hameedktk09/gms/main/clfsasu1.png" alt="logo" />
+          <img src="https://raw.githubusercontent.com/hameedktk09/cms/main/clfs-logo.png" alt="logo" />
           <h1>A'Sharqiyah University</h1>
           <p>Center For Language and Foundation Studies</p>
           <p><strong>${currentSemLabel}</strong></p>
@@ -2086,8 +2086,8 @@ export function GradeTable({
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_450px] items-center gap-6">
         {/* Left: Logo Card Container */}
         <div className="flex items-center justify-center lg:justify-start">
-          <div className="flex items-center justify-center bg-white border border-slate-100/80 shadow-sm rounded-xl p-3.5 min-w-[270px] h-[80px] transition-all hover:shadow-md">
-            <ClfsLogo className="w-56 h-auto max-h-12 object-contain" />
+          <div className="flex items-center justify-center bg-white border border-slate-100/80 shadow-sm rounded-xl p-1 min-w-[270px] h-[80px] transition-all hover:shadow-md">
+            <ClfsLogo className="w-64 h-auto max-h-[72px] object-contain" />
           </div>
         </div>
 
@@ -2226,7 +2226,18 @@ export function GradeTable({
                       })
                     ) : (
                       <>
-                        {COURSE_OPTIONS.map(c => (
+                        {COURSE_OPTIONS.filter(c => {
+                          if (user?.role === 'instructor' && user?.subject) {
+                            if (user.subject === 'English') {
+                              return ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'].includes(c.value);
+                            } else if (user.subject === 'Mathematics') {
+                              return c.value === 'FPMA001';
+                            } else if (user.subject === 'Information Technology') {
+                              return c.value === 'FPIT001';
+                            }
+                          }
+                          return true;
+                        }).map(c => (
                           <SelectItem key={c.value} value={c.value} className="!font-normal text-slate-700 focus:bg-teal-50 focus:text-teal-800 cursor-pointer py-2 truncate rounded-md">
                             {c.label}
                           </SelectItem>
