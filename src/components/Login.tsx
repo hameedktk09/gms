@@ -94,7 +94,7 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
         className="w-full max-w-[340px] bg-white shadow-xl border border-slate-200 overflow-hidden"
       >
         <div className="bg-teal-950 p-6 text-center text-white">
-          <div className="w-[200px] h-12 bg-white flex items-center justify-center mx-auto mb-3 border border-teal-900/10 shadow-sm p-1.5">
+          <div className="w-[200px] h-12 flex items-center justify-center mx-auto mb-3">
             <ClfsLogo className="w-full h-full object-contain" />
           </div>
           <h1 className="text-base font-bold tracking-tight leading-none uppercase">CLFS Portal</h1>

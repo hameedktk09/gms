@@ -41,7 +41,7 @@ const PrintHeader = ({
   return (
     <div className="w-full px-8 py-6 bg-white border-b-2 border-slate-200 mb-6">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-8">
-        <div className="bg-white p-2 flex items-center justify-center border border-slate-200 rounded-lg">
+        <div className="flex items-center justify-center">
           <ClfsLogo className="w-48 h-24 object-contain" />
         </div>
         

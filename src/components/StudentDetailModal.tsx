@@ -712,7 +712,7 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
         <div ref={cardRef} style={{ width: '650px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0px', overflow: 'hidden', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
           <div style={{ backgroundColor: headerColor, padding: '32px', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <img src="https://raw.githubusercontent.com/hameedktk09/cms/main/clfs-logo.png" alt="ASU Logo" style={{ width: '160px', height: '60px', background: '#ffffff', borderRadius: '0px', padding: '4px', objectFit: 'contain' }} crossOrigin="anonymous" />
+              <img src="https://raw.githubusercontent.com/hameedktk09/cms/main/clfs-logo.png" alt="ASU Logo" style={{ width: '160px', height: '60px', borderRadius: '0px', objectFit: 'contain' }} crossOrigin="anonymous" />
               <div>
                 <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>{student.name}</h1>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

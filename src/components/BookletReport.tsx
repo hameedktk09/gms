@@ -28,7 +28,7 @@ const BookletCover = ({ semester, courseName, courseCode, section, instructorNam
       <div className="absolute bottom-[-50px] left-[-50px] w-64 h-64 bg-blue-50 rounded-full opacity-30" />
       
       <div className="flex-1 flex flex-col items-center justify-center text-center space-y-12 z-10 w-full">
-        <div className="bg-white p-8 border-8 border-blue-950 shadow-2xl mb-4">
+        <div className="mb-4">
           <ClfsLogo className="w-80 h-32 object-contain" />
         </div>
         

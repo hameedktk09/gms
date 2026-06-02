@@ -2086,7 +2086,7 @@ export function GradeTable({
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_450px] items-center gap-6">
         {/* Left: Logo Card Container */}
         <div className="flex items-center justify-center lg:justify-start">
-          <div className="flex items-center justify-center bg-white border border-slate-100/80 shadow-sm rounded-xl p-1 min-w-[270px] h-[80px] transition-all hover:shadow-md">
+          <div className="flex items-center justify-center min-w-[270px] h-[80px]">
             <ClfsLogo className="w-64 h-auto max-h-[72px] object-contain" />
           </div>
         </div>

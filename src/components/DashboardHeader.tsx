@@ -75,7 +75,7 @@ export function DashboardHeader({
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] items-start gap-6">
             {/* Left: Logo */}
             <div className="flex items-start justify-center lg:justify-start">
-              <div className="bg-white p-2 border border-slate-200 shadow-sm flex items-center justify-center min-w-[240px] h-[116px] transition-all">
+              <div className="flex items-center justify-center min-w-[240px] h-[116px] transition-all">
                 <ClfsLogo className="w-56 h-auto max-h-[100px] object-contain" />
               </div>
             </div>
@@ -131,9 +131,9 @@ export function DashboardHeader({
             </div>
 
             {/* Right: Instructor Info and Course/Section Consolidated Tray */}
-            <div className="flex flex-col h-[116px] min-w-[340px] bg-white border border-slate-200 shadow-sm overflow-hidden no-print print:block print:border-none print:shadow-none print:p-0 font-sans">
+            <div className="flex flex-col min-h-[116px] min-w-[340px] bg-white border border-slate-200 shadow-sm overflow-hidden no-print print:block print:border-none print:shadow-none print:p-0 font-sans">
               {/* Top Row: Instructor Info and Logout */}
-              <div className="flex items-stretch gap-2 p-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 p-3 border-b border-slate-100">
                 <div className="flex-1 flex items-center gap-3">
                   {(user?.role === 'admin' || user?.role === 'instructor') && (
                     <Button 
@@ -146,11 +146,20 @@ export function DashboardHeader({
                       <ShieldAlert className="w-5 h-5" />
                     </Button>
                   )}
-                  <div>
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">Instructor Name</p>
-                    <p className="text-[12px] font-serif font-bold text-slate-900 leading-tight">
-                      {cleanInstructorText(sectionData?.formData?.instructor || user?.fullName || 'Administrator')}
-                    </p>
+                  <div className="flex flex-col items-start">
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Instructor Name</p>
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#e8f5e9] border border-emerald-300 shadow-sm">
+                      <p className="text-[11px] font-bold text-emerald-950 leading-tight">
+                        {cleanInstructorText(sectionData?.formData?.instructor || user?.fullName || 'Administrator')}
+                      </p>
+                      <div className="inline-flex items-center gap-1 bg-emerald-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded tracking-wider leading-none">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white relative flex">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        LIVE
+                      </div>
+                    </div>
                   </div>
                 </div>
 

@@ -239,7 +239,7 @@ export function AdminDashboard({
     )}>
       <div className="bg-slate-900 p-6 text-white flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-4">
-          <div className="bg-white p-1.5 shadow-md rounded-lg">
+          <div className="p-1.5 animate-pulse">
             <ClfsLogo className="w-12 h-8 object-contain" />
           </div>
           <div className="flex items-center gap-3">
