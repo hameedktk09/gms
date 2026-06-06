@@ -257,6 +257,15 @@ export function AdminDashboard({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {currentUserRole === 'admin' && (
+            <Button 
+              onClick={onClose} 
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-wider text-[10px] rounded-lg h-9 px-4 transition-all shrink-0 shadow-sm flex items-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              Open Grades
+            </Button>
+          )}
           {isPageLayout && onLogout && (
             <Button 
               variant="destructive" 
