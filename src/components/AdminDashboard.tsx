@@ -239,8 +239,8 @@ export function AdminDashboard({
     )}>
       <div className="bg-slate-900 p-6 text-white flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-4">
-          <div className="p-1.5 animate-pulse">
-            <ClfsLogo className="w-12 h-8 object-contain" />
+          <div className="p-1">
+            <ClfsLogo className="w-40 h-10 object-contain" />
           </div>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-teal-600 flex items-center justify-center rounded-lg shadow-inner">
