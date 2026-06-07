@@ -519,11 +519,11 @@ export function getCourseReportSummary(allData: AllCoursesData, semester?: strin
     instructors: Array.from(s.instructors).join(', ')
   }));
 
-  // Filter out default "GFP English" / "Instructor's Name" row if we have real/non-empty courses (courses with students)
-  const hasRealCourses = results.some(r => r.totalStudents > 0 && r.courseName !== 'GFP English' && r.courseName !== 'GFP English (FP00000)');
+  // Filter out default "English" / "Instructor's Name" row if we have real/non-empty courses (courses with students)
+  const hasRealCourses = results.some(r => r.totalStudents > 0 && r.courseName !== 'English' && r.courseName !== 'English (FP00000)');
   if (hasRealCourses) {
     return results.filter(r => {
-      const isDefaultRow = (r.courseName === 'GFP English' || r.courseName === 'GFP English (FP00000)' || r.courseName.includes('FP00000')) && 
+      const isDefaultRow = (r.courseName === 'English' || r.courseName === 'English (FP00000)' || r.courseName.includes('FP00000')) && 
                            (r.totalStudents === 0 || r.instructors.includes("Instructor's Name"));
       return !isDefaultRow;
     });

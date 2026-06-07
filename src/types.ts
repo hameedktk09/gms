@@ -18,7 +18,7 @@ export interface RegistrationRequest {
   id: string;
   fullName: string;
   email: string;
-  subject: 'English' | 'Mathematics' | 'Information Technology';
+  subject: 'English';
   requestedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   generatedUsername?: string;
@@ -97,12 +97,10 @@ export const FINAL_MARKS_LIMITS: { [key: number]: number } = {
 };
 
 export const COURSE_OPTIONS = [
-  { value: 'FP00000', label: 'GFP English' },
-  { value: 'FPPI002', label: 'GFP English Pre-Intermediate' },
-  { value: 'FPIN003', label: 'GFP English Intermediate' },
-  { value: 'FPAD004', label: 'GFP English Advance' },
-  { value: 'FPMA001', label: 'GFP Mathematics' },
-  { value: 'FPIT001', label: 'GFP Information Technology' },
+  { value: 'FP00000', label: 'English' },
+  { value: 'FPPI002', label: 'English Pre-Intermediate' },
+  { value: 'FPIN003', label: 'English Intermediate' },
+  { value: 'FPAD004', label: 'English Advance' },
 ];
 
 export const SEMESTER_OPTIONS = [

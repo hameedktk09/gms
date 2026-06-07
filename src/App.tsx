@@ -49,6 +49,7 @@ export default function App() {
   const [showOptionalPasswordPrompt, setShowOptionalPasswordPrompt] = useState(false);
 
   useEffect(() => {
+    console.log('Current user state:', user);
     if (user && user.role === 'instructor' && user.mustChangePassword) {
       setShowOptionalPasswordPrompt(true);
     } else {
@@ -66,7 +67,7 @@ export default function App() {
     localStorage.setItem('clfs_registration_requests', JSON.stringify(registrationRequests));
   }, [registrationRequests]);
 
-  const handleRequestRegister = (fullName: string, email: string, subject: 'English' | 'Mathematics' | 'Information Technology') => {
+  const handleRequestRegister = (fullName: string, email: string, subject: 'English') => {
     const existing = registrationRequests.find(r => r.email.toLowerCase() === email.toLowerCase() && r.status === 'pending');
     if (existing) {
       return { success: false, message: "A request for this official email is already pending approval." };
@@ -317,7 +318,7 @@ export default function App() {
         courseCode,
         targetSection,
         instructorUser.fullName,
-        COURSE_OPTIONS.find(c => c.value === courseCode)?.label || "GFP English"
+        COURSE_OPTIONS.find(c => c.value === courseCode)?.label || "English"
       );
     }
 
@@ -438,7 +439,7 @@ export default function App() {
           semester: targetSemesterFromKey, 
           course: targetCourseFromKey, 
           section: targetSectionFromKey,
-          courseTitle: COURSE_OPTIONS.find(c => c.value === targetCourseFromKey)?.label || "GFP English",
+          courseTitle: COURSE_OPTIONS.find(c => c.value === targetCourseFromKey)?.label || "English",
           instructor: user?.fullName || "Instructor"
         } 
       };
@@ -561,7 +562,7 @@ export default function App() {
             semester: currentSemester,
             course: currentCourse,
             section: newSectionCode,
-            courseTitle: COURSE_OPTIONS.find(c => c.value === currentCourse)?.label || "GFP English",
+            courseTitle: COURSE_OPTIONS.find(c => c.value === currentCourse)?.label || "English",
             instructor: user?.fullName || "Instructor",
           }
         }
@@ -582,7 +583,7 @@ export default function App() {
           semester: activeKey.split('_')[1] || currentSemester,
           course: activeKey.split('_')[2] || currentCourse,
           section: activeKey.split('_Sec')[1]?.padStart(2, '0') || currentSection,
-          courseTitle: COURSE_OPTIONS.find(c => c.value === (activeKey.split('_')[2] || currentCourse))?.label || "GFP English",
+          courseTitle: COURSE_OPTIONS.find(c => c.value === (activeKey.split('_')[2] || currentCourse))?.label || "English",
           instructor: user?.fullName || "Instructor",
         }
       };
@@ -651,7 +652,7 @@ export default function App() {
             semester: activeKey.split('_')[1] || currentSemester,
             course: activeKey.split('_')[2] || currentCourse,
             section: activeKey.split('_Sec')[1]?.padStart(2, '0') || currentSection,
-            courseTitle: COURSE_OPTIONS.find(c => c.value === (activeKey.split('_')[2] || currentCourse))?.label || "GFP English",
+            courseTitle: COURSE_OPTIONS.find(c => c.value === (activeKey.split('_')[2] || currentCourse))?.label || "English",
             instructor: user?.fullName || "Instructor",
           }
         };

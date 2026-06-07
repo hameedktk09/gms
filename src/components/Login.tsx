@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   allUsers?: { [key: string]: any };
-  onRequestRegister?: (fullName: string, email: string, subject: 'English' | 'Mathematics' | 'Information Technology') => { success: boolean; message: string; queueNumber?: number };
+  onRequestRegister?: (fullName: string, email: string, subject: 'English') => { success: boolean; message: string; queueNumber?: number };
 }
 
 export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
@@ -24,7 +24,7 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
   const [showRequestBox, setShowRequestBox] = useState(false);
   const [reqFullName, setReqFullName] = useState('');
   const [reqEmail, setReqEmail] = useState('');
-  const [reqSubject, setReqSubject] = useState<'English' | 'Mathematics' | 'Information Technology'>('English');
+  const [reqSubject, setReqSubject] = useState<'English'>('English');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,8 +259,6 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
                     className="w-full h-8 px-2 border border-slate-200 outline-none transition-all bg-white text-[11px] font-bold"
                   >
                     <option value="English">English Language</option>
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Information Technology">Information Technology (IT)</option>
                   </select>
                 </div>
               </div>

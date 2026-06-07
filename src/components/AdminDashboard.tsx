@@ -25,6 +25,7 @@ import { getCourseReportSummary, calculateFinalValues, getStudentStatus } from '
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from "sonner";
 import { ClfsLogo } from './ClfsLogo';
+import { cleanInstructorText } from './GradeTable';
 import {
   Tabs,
   TabsContent,
@@ -96,8 +97,8 @@ export function AdminDashboard({
   const [username, setUsername] = useState('');
   const [emailPrefix, setEmailPrefix] = useState('');
   const [password, setPassword] = useState('');
-  const [subject, setSubject] = useState('Mathematics');
-  const [activeTab, setActiveTab] = useState<string>('Mathematics');
+  const [subject, setSubject] = useState('English');
+  const [activeTab, setActiveTab] = useState<string>('English');
   const [instructorSearch, setInstructorSearch] = useState('');
   const [isCerDialogOpen, setIsCerDialogOpen] = useState(false);
   const [cerSections, setCerSections] = useState<{title: string, content: string}[]>([]);
@@ -140,27 +141,32 @@ export function AdminDashboard({
   };
 
   const getFilteredAllData = () => {
-    if (currentUserRole === 'admin') {
-      return allData;
-    }
-    
     const filtered: AllCoursesData = {};
     const userObj = currentUsername ? allUsers[currentUsername] : null;
-    if (!userObj) return filtered;
-    
-    const userFullName = (userObj.fullName || '').trim().toLowerCase();
-    const userName = (userObj.username || '').trim().toLowerCase();
-    const userEmail = (userObj.email || '').trim().toLowerCase();
 
     Object.entries(allData).forEach(([key, section]) => {
-      const instructorField = (section.formData.instructor || '').trim().toLowerCase();
-      if (
-        instructorField === userFullName || 
-        instructorField === userName || 
-        (userEmail && instructorField === userEmail)
-      ) {
-        filtered[key] = section;
+      const courseName = (section.formData.courseTitle || section.formData.course || '').trim();
+      
+      if (courseName === '' || !courseName.toLowerCase().includes('english')) {
+          return;
       }
+
+      if (currentUserRole !== 'admin') {
+        if (!userObj) return;
+        const userFullName = cleanInstructorText(userObj.fullName || '').trim().toLowerCase();
+        const userName = (userObj.username || '').trim().toLowerCase();
+        const userEmail = (userObj.email || '').trim().toLowerCase();
+        const instructorField = cleanInstructorText(section.formData.instructor || '').trim().toLowerCase();
+
+        if (
+          instructorField !== userFullName && 
+          instructorField !== userName && 
+          (!userEmail || instructorField !== userEmail)
+        ) {
+          return;
+        }
+      }
+      filtered[key] = section;
     });
     
     return filtered;
@@ -219,7 +225,7 @@ export function AdminDashboard({
     toast.success(`Instructor ${fullName} added successfully`);
   };
 
-  const instructors = Object.values(allUsers).filter(u => u.role === 'instructor');
+  const instructors = Object.values(allUsers).filter(u => u.role === 'instructor' && u.subject === 'English');
   const filteredInstructors = instructors.filter(u => {
     // If instructor, only see themselves
     if (currentUserRole === 'instructor' && u.username !== currentUsername) {
@@ -367,6 +373,34 @@ export function AdminDashboard({
                   </div>
                 );
               })()}
+            </div>
+
+            <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Push Section Data to ARG</h3>
+                <p className="text-xs text-slate-500 font-medium">Export and transfer your course data to the Annual Report Generator.</p>
+              </div>
+              <Button
+                  onClick={() => {
+                      const actualData = getCourseReportSummary(getFilteredAllData(), currentSemester);
+                      if (actualData.length === 0) {
+                        toast.error("No data found for this semester");
+                        return;
+                      }
+
+                      const headers = "Course Name\tInstructor’s Name\tTotal Students\tTotal Sections\tPassed\tFailed\tFA\tWA/W\tI/IP\tPST\tOthers\n";
+                      const rows = actualData.map(r => `${r.courseName}\t${r.instructors}\t${r.totalStudents}\t${r.totalSections}\t${r.passed}\t${r.failed}\t${r.fas}\t${r.ws}\t${r.ips + r.is}\t${r.psts}\t${r.others}`).join('\n');
+
+                      navigator.clipboard.writeText(headers + rows).then(() => {
+                         toast.success("Data copied to clipboard for ARG!");
+                         window.open('https://aistudio.google.com/apps/9b17021e-10b9-4481-af0d-13c4c5136811?showPreview=true&showAssistant=true&fullscreenApplet=true', '_blank');
+                      });
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest px-5 h-11 shadow-md shrink-0 flex items-center gap-2 rounded-xl transition-all hover:scale-[1.02] active:scale-95"
+              >
+                  <ExternalLink className="w-4 h-4" />
+                  Push data to ARG
+              </Button>
             </div>
 
             {/* Performance Report Table */}
@@ -543,8 +577,6 @@ export function AdminDashboard({
                         </SelectTrigger>
                         <SelectContent className="bg-white border-slate-200">
                           <SelectItem value="English">English Language</SelectItem>
-                          <SelectItem value="Mathematics">Mathematics</SelectItem>
-                          <SelectItem value="Information Technology">Information Technology (IT)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -781,9 +813,7 @@ export function AdminDashboard({
 
                   <div className="flex bg-slate-100 p-1 border border-slate-200 shadow-inner">
                     {[
-                      { id: 'English', icon: BookOpen },
-                      { id: 'Mathematics', icon: Calculator },
-                      { id: 'Information Technology', icon: Cpu }
+                      { id: 'English', icon: BookOpen }
                     ].map(tab => (
                       <button
                         key={tab.id}

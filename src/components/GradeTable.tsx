@@ -302,10 +302,10 @@ export function GradeTable({
       { pattern: /FPAD004/i, code: 'FPAD004' },
       
       // English course names
-      { pattern: /GFP\s*English\s*Advance/i, code: 'FPAD004' },
-      { pattern: /GFP\s*English\s*Intermediate/i, code: 'FPIN003' },
-      { pattern: /GFP\s*English\s*Pre-Intermediate/i, code: 'FPPI002' },
-      { pattern: /GFP\s*English/i, code: 'FP00000' }
+      { pattern: /English\s*Advance/i, code: 'FPAD004' },
+      { pattern: /English\s*Intermediate/i, code: 'FPIN003' },
+      { pattern: /English\s*Pre-Intermediate/i, code: 'FPPI002' },
+      { pattern: /English/i, code: 'FP00000' }
     ];
     
     // Section patterns

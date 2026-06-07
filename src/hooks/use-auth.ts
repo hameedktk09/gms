@@ -38,13 +38,16 @@ export function useAuth() {
   }, []);
 
   const login = async (username?: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+    console.log('Login attempt for:', username);
     if (!username || !password) return { success: false, error: 'Username and password required' };
     
     const foundUser = allUsers[username];
+    console.log('Found user:', foundUser);
     
     if (foundUser) {
       if (foundUser.password !== password) return { success: false, error: 'Invalid credentials' };
       if (!foundUser.approved) return { success: false, error: 'Account pending approval' };
+      console.log('Setting user:', foundUser);
       setUser(foundUser);
       localStorage.setItem(AUTH_KEY, JSON.stringify(foundUser));
       return { success: true };

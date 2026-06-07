@@ -13,7 +13,7 @@ export function useGradeData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
   }, [allData]);
 
-  const [currentCourse, setCurrentCourse] = useState(() => localStorage.getItem('SGS_currentCourse') || 'FP00000');
+  const [currentCourse, setCurrentCourse] = useState(() => localStorage.getItem('SGS_currentCourse') || 'FPPI002');
   const [currentSection, setCurrentSection] = useState(() => localStorage.getItem('SGS_currentSection') || '00');
   const [currentSemester, setCurrentSemester] = useState(() => localStorage.getItem('SGS_currentSemester') || 'Fall');
 
@@ -116,7 +116,7 @@ export function useGradeData() {
         ...currentSectionData.formData,
         semester: "ABC Semester",
         instructor: "Instructor's Name",
-        courseTitle: "GFP English",
+        courseTitle: "English",
         course: "FP000x",
         section: "xx"
       }
@@ -155,17 +155,20 @@ export function useGradeData() {
 
   const getAvailableCourses = useCallback(() => {
     const courses = new Set<string>();
+    const englishCourses = ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'];
     
     // Prioritize sections that actually have student records
     (Object.entries(allData) as Array<[string, SectionData]>).forEach(([key, section]) => {
       const match = key.match(new RegExp(`SGS_${currentSemester}_(.*)_Sec.*`));
       if (match && match[1] && section.students && section.students.length > 0) {
-        courses.add(match[1]);
+        if (englishCourses.includes(match[1])) {
+          courses.add(match[1]);
+        }
       }
     });
 
     // Ensure the current active course is always included so it remains selectable
-    if (currentCourse) {
+    if (currentCourse && englishCourses.includes(currentCourse)) {
       courses.add(currentCourse);
     }
 
@@ -173,7 +176,7 @@ export function useGradeData() {
     if (courses.size === 0 || (courses.size === 1 && courses.has(currentCourse) && (!allData[getSectionKey(currentSemester, currentCourse, currentSection)]?.students || allData[getSectionKey(currentSemester, currentCourse, currentSection)].students.length === 0))) {
       Object.keys(allData).forEach(key => {
         const match = key.match(new RegExp(`SGS_${currentSemester}_(.*)_Sec.*`));
-        if (match && match[1]) courses.add(match[1]);
+        if (match && match[1] && englishCourses.includes(match[1])) courses.add(match[1]);
       });
     }
 
