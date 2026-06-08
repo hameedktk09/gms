@@ -4,6 +4,7 @@ import path from "path";
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from "@google/genai";
+import { readDb, writeDb } from "./server-db.js";
 
 dotenv.config();
 
@@ -12,6 +13,285 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Database API - Login
+  app.post("/api/auth/login", (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: "Username and password required" });
+    }
+    const db = readDb();
+    const foundUser = db.users[username];
+    if (foundUser) {
+      if (foundUser.password !== password) {
+        return res.status(401).json({ success: false, error: "Invalid credentials" });
+      }
+      if (!foundUser.approved) {
+        return res.status(403).json({ success: false, error: "Account pending approval" });
+      }
+      return res.json({ success: true, user: foundUser });
+    }
+    return res.status(404).json({ success: false, error: "Please contact Admin to add your credentials" });
+  });
+
+  // Database API - Change Password
+  app.post("/api/auth/change-password", (req, res) => {
+    const { username, newPassword } = req.body;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].password = newPassword;
+      db.users[username].mustChangePassword = false;
+      writeDb(db);
+      return res.json({ success: true, user: db.users[username] });
+    }
+    return res.status(404).json({ success: false, error: "User not found" });
+  });
+
+  // Database API - Skip Password Change
+  app.post("/api/auth/skip-password-change", (req, res) => {
+    const { username } = req.body;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].mustChangePassword = false;
+      writeDb(db);
+      return res.json({ success: true, user: db.users[username] });
+    }
+    return res.status(404).json({ success: false, error: "User not found" });
+  });
+
+  // Admin API - Get All Users
+  app.get("/api/admin/users", (req, res) => {
+    const db = readDb();
+    res.json({ success: true, users: db.users });
+  });
+
+  // Admin API - Add User
+  app.post("/api/admin/users", (req, res) => {
+    const newUser = req.body;
+    const db = readDb();
+    db.users[newUser.username] = newUser;
+    writeDb(db);
+    res.json({ success: true, users: db.users });
+  });
+
+  // Admin API - Delete User
+  app.delete("/api/admin/users/:username", (req, res) => {
+    const { username } = req.params;
+    const db = readDb();
+    delete db.users[username];
+    writeDb(db);
+    res.json({ success: true, users: db.users });
+  });
+
+  // Admin API - Approve User
+  app.put("/api/admin/users/:username/approve", (req, res) => {
+    const { username } = req.params;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].approved = true;
+      writeDb(db);
+      res.json({ success: true, users: db.users });
+    } else {
+      res.status(404).json({ success: false, error: "User not found" });
+    }
+  });
+
+  // Admin API - Reset Password
+  app.put("/api/admin/users/:username/reset-password", (req, res) => {
+    const { username } = req.params;
+    const { newPassword } = req.body;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].password = newPassword;
+      writeDb(db);
+      res.json({ success: true, users: db.users });
+    } else {
+      res.status(404).json({ success: false, error: "User not found" });
+    }
+  });
+
+  // Admin API - Import Users
+  app.post("/api/admin/import-users", (req, res) => {
+    const { users } = req.body;
+    const db = readDb();
+    db.users = { ...db.users, ...users };
+    writeDb(db);
+    res.json({ success: true, users: db.users });
+  });
+
+  // Registration Requests API - Get All
+  app.get("/api/registration-requests", (req, res) => {
+    const db = readDb();
+    res.json({ success: true, requests: db.registrationRequests });
+  });
+
+  // Registration Requests API - Create Request
+  app.post("/api/registration-requests", (req, res) => {
+    const newRequest = req.body;
+    const db = readDb();
+    
+    const existing = db.registrationRequests.find(r => r.email.toLowerCase() === newRequest.email.toLowerCase() && r.status === 'pending');
+    if (existing) {
+      return res.status(400).json({ success: false, message: "A request for this official email is already pending approval." });
+    }
+
+    db.registrationRequests.unshift(newRequest);
+    writeDb(db);
+    res.json({ success: true, requests: db.registrationRequests });
+  });
+
+  // Registration Requests API - Approve Request
+  app.put("/api/registration-requests/:id/approve", (req, res) => {
+    const { id } = req.params;
+    const { chosenUsername, chosenPassword } = req.body;
+    const db = readDb();
+    
+    const reqIndex = db.registrationRequests.findIndex(r => r.id === id);
+    if (reqIndex === -1) {
+      return res.status(404).json({ success: false, error: "Request not found" });
+    }
+
+    const reqObj = db.registrationRequests[reqIndex];
+    let generatedUsername = chosenUsername ? chosenUsername.trim().toLowerCase() : reqObj.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    
+    if (!chosenUsername && db.users[generatedUsername]) {
+      generatedUsername = `${generatedUsername}${Math.floor(10 + Math.random() * 90)}`;
+    }
+
+    const defaultPass = chosenPassword || Math.random().toString(36).substr(2, 8);
+
+    const newUser = {
+      uid: reqObj.id,
+      email: reqObj.email,
+      fullName: reqObj.fullName,
+      username: generatedUsername,
+      password: defaultPass,
+      role: 'instructor' as const,
+      subject: reqObj.subject,
+      approved: true,
+      mustChangePassword: true
+    };
+
+    db.users[generatedUsername] = newUser;
+    db.registrationRequests[reqIndex] = {
+      ...reqObj,
+      status: 'approved',
+      generatedUsername,
+      generatedPassword: defaultPass
+    };
+
+    writeDb(db);
+    res.json({ success: true, requests: db.registrationRequests, users: db.users });
+  });
+
+  // Registration Requests API - Reject Request
+  app.put("/api/registration-requests/:id/reject", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    const reqIndex = db.registrationRequests.findIndex(r => r.id === id);
+    if (reqIndex !== -1) {
+      db.registrationRequests[reqIndex].status = 'rejected';
+      writeDb(db);
+      res.json({ success: true, requests: db.registrationRequests });
+    } else {
+      res.status(404).json({ success: false, error: "Request not found" });
+    }
+  });
+
+  // Registration Requests API - Remove Request completely
+  app.delete("/api/registration-requests/:id", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    const reqObj = db.registrationRequests.find(r => r.id === id);
+    if (!reqObj) {
+      return res.status(404).json({ success: false, error: "Request not found" });
+    }
+
+    if (reqObj.status === 'approved' && reqObj.generatedUsername) {
+      delete db.users[reqObj.generatedUsername];
+    }
+
+    db.registrationRequests = db.registrationRequests.filter(r => r.id !== id);
+    writeDb(db);
+    res.json({ success: true, requests: db.registrationRequests, users: db.users });
+  });
+
+  // Grades API - Get All Grades (Sections)
+  app.get("/api/grades", (req, res) => {
+    const db = readDb();
+    res.json({ success: true, grades: db.grades });
+  });
+
+  // Grades API - Save/Update All Grades
+  app.post("/api/grades", (req, res) => {
+    const { grades } = req.body;
+    const db = readDb();
+    db.grades = grades;
+    writeDb(db);
+    res.json({ success: true, grades: db.grades });
+  });
+
+  // API - Get Cached Report
+  app.get("/api/cache/reports/:key", (req, res) => {
+    const { key } = req.params;
+    const db = readDb();
+    const report = db.aiReports[key];
+    if (report) {
+      res.json({ success: true, report });
+    } else {
+      res.status(404).json({ success: false, error: "Not found" });
+    }
+  });
+
+  // API - Cache Report
+  app.post("/api/cache/reports/:key", (req, res) => {
+    const { key } = req.params;
+    const { report } = req.body;
+    const db = readDb();
+    db.aiReports[key] = report;
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  // API - Delete Cached Report
+  app.delete("/api/cache/reports/:key", (req, res) => {
+    const { key } = req.params;
+    const db = readDb();
+    delete db.aiReports[key];
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  // API - Get Cached Remark
+  app.get("/api/cache/remarks/:id", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    const remark = db.studentRemarks[id];
+    if (remark) {
+      res.json({ success: true, remarks: remark });
+    } else {
+      res.status(404).json({ success: false, error: "Not found" });
+    }
+  });
+
+  // API - Cache Remark
+  app.post("/api/cache/remarks/:id", (req, res) => {
+    const { id } = req.params;
+    const { remarks } = req.body;
+    const db = readDb();
+    db.studentRemarks[id] = remarks;
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  // API - Delete Cached Remark
+  app.delete("/api/cache/remarks/:id", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    delete db.studentRemarks[id];
+    writeDb(db);
+    res.json({ success: true });
+  });
 
   // Email API Route
   app.post("/api/send-reminders", async (req, res) => {
