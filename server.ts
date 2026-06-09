@@ -5,7 +5,8 @@ import { Resend } from 'resend';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from "@google/genai";
 
-dotenv.config();
+// .env.local takes precedence over .env (used for local overrides like PORT)
+dotenv.config({ path: ['.env.local', '.env'] });
 
 async function startServer() {
   const app = express();

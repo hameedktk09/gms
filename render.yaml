@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: gms
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false   # set the real value in the Render dashboard
+      - key: RESEND_API_KEY
+        sync: false   # set the real value in the Render dashboard
+    # Render injects PORT automatically; server.ts reads process.env.PORT.
