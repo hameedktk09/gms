@@ -82,7 +82,40 @@ import { cleanInstructorText } from './GradeTable';
 
 export function formatMarkdownToJSX(text: string | null | undefined): React.ReactNode {
   if (!text) return null;
-  let cleaned = text;
+  
+  // Replace literal backslash-n sequences with actual newlines first
+  let cleaned = text.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+  
+  // Clean up any newlines/spaces inside the asterisks themselves first
+  cleaned = cleaned.replace(/\*\*\s*([\r\n]+)\s*/g, "**");
+  cleaned = cleaned.replace(/\s*([\r\n]+)\s*\*\*/g, "**");
+
+  // Remove redundant newlines before or after short bold values (numbers, percentages, grade letters, short words)
+  const shortValuePattern = /(?:\d+(?:\.\d+)?%?|[A-FdD][+-]?|Pass|Fail|FA|W|WA|At-Risk)/i;
+  
+  // Replace actual newlines followed by a bold short value with a space and the bold value
+  cleaned = cleaned.replace(new RegExp(`\\s*[\\r\\n]+\\s*\\*\\*(${shortValuePattern.source})\\*\\*`, 'gi'), " **$1** ");
+  // Replace bold short value followed by actual newlines with the bold value and a space
+  cleaned = cleaned.replace(new RegExp(`\\*\\*(${shortValuePattern.source})\\*\\*\\s*[\\r\\n]+\\s*`, 'gi'), " **$1** ");
+
+  // Collapse consecutive newlines next to ANY numbers/percentages (even if they are not bolded)
+  cleaned = cleaned.replace(/[\r\n]+\s*(\d+(?:\.\d+)?%?)\b/gi, " $1");
+  cleaned = cleaned.replace(/\b(\d+(?:\.\d+)?%?)\s*[\r\n]+/gi, "$1 ");
+  
+  // Clean up any newlines or literal \n strings that are still immediately adjacent to strong elements
+  cleaned = cleaned.replace(/[\r\n]+\s*\*\*([^*]+)\*\*/g, (match, p1) => {
+    if (shortValuePattern.test(p1) || p1.trim().match(/^\d+(?:\.\d+)?%?$/)) {
+      return ` **${p1.trim()}**`;
+    }
+    return match;
+  });
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*\s*[\r\n]+/g, (match, p1) => {
+    if (shortValuePattern.test(p1) || p1.trim().match(/^\d+(?:\.\d+)?%?$/)) {
+      return `**${p1.trim()}** `;
+    }
+    return match;
+  });
+
   // Clean up empty double asterisks blocks (e.g. "** **" or "****")
   cleaned = cleaned.replace(/\*\*\s*\*\*/g, " ");
   // Clean up triple/quadruple asterisks
@@ -94,18 +127,22 @@ export function formatMarkdownToJSX(text: string | null | undefined): React.Reac
     cleaned = cleaned + "**";
   }
 
+  // Double check and replace multiple spaces
+  cleaned = cleaned.replace(/[ ]+/g, " ");
+
   const parts = cleaned.split("**");
   return (
     <>
       {parts.map((part, index) => {
         if (index % 2 === 1) {
           if (!part.trim()) return null;
+          const cleanedPart = part.replace(/[\r\n]+/g, " ").trim();
           return (
             <strong 
               key={index} 
               className="font-extrabold text-[#006056] bg-yellow-101 bg-yellow-100/60 dark:bg-yellow-900/20 px-1 py-0.5 rounded-sm border border-yellow-200/50 inline-block font-sans"
             >
-              {part}
+              {cleanedPart}
             </strong>
           );
         }
@@ -124,6 +161,44 @@ interface StatsViewProps {
   onBack: () => void;
   initialTab?: string;
 }
+
+const GRADE_COLORS: Record<string, string> = {
+  'A+': '#15803d',
+  'A': '#16a34a',
+  'A-': '#22c55e',
+  'B+': '#84cc16',
+  'B': '#a3e635',
+  'B-': '#d9f99d',
+  'C+': '#fde047',
+  'C': '#facc15',
+  'C-': '#f59e0b',
+  'D+': '#f97316',
+  'D': '#ea580c',
+  'D-': '#dc2626',
+  'F': '#991b1b'
+};
+
+const SCORE_RANGE_COLORS: Record<string, string> = {
+  '90-100': '#15803d',
+  '85-89': '#16a34a',
+  '80-84': '#22c55e',
+  '75-79': '#84cc16',
+  '70-74': '#a3e635',
+  '65-69': '#fde047',
+  '60-64': '#facc15',
+  '55-59': '#f59e0b',
+  '50-54': '#f97316',
+  '45-49': '#ea580c',
+  '0-44': '#b91c1c'
+};
+
+const getGradeColorByValue = (gradeName: string) => {
+  return GRADE_COLORS[gradeName] || '#64748b';
+};
+
+const getScoreRangeColor = (rangeName: string) => {
+  return SCORE_RANGE_COLORS[rangeName] || '#3b82f6';
+};
 
 const COLORS = ['#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#d97706', '#65a30d', '#059669', '#0891b2'];
 
@@ -213,6 +288,7 @@ export function StatsView({ students, courseCode, section, semester, user, onBac
   const [isSending, setIsSending] = React.useState(false);
   const [reminderMessage, setReminderMessage] = React.useState('');
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [gradeChartType, setGradeChartType] = React.useState<'bar' | 'line' | 'pie'>('bar');
   const [activeTab, setActiveTab] = React.useState(initialTab || 'raw');
 
   React.useEffect(() => {
@@ -864,62 +940,191 @@ export function StatsView({ students, courseCode, section, semester, user, onBac
                     <Award className="w-4 h-4 text-blue-600" />
                     <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Grade Distribution Visualization</h3>
                   </div>
-                  <CopyButton title="Grade Distribution" data={stats.gradeChartData} />
+                  <div className="flex items-center gap-3">
+                    <div className="bg-slate-200/60 p-0.5 rounded-md flex items-center border border-slate-300">
+                      <button
+                        onClick={() => setGradeChartType('bar')}
+                        className={`px-3 py-1 text-[9px] font-black uppercase tracking-wider rounded-sm transition-all ${
+                          gradeChartType === 'bar' ? 'bg-[#00786f] text-white' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Bar
+                      </button>
+                      <button
+                        onClick={() => setGradeChartType('line')}
+                        className={`px-3 py-1 text-[9px] font-black uppercase tracking-wider rounded-sm transition-all ${
+                          gradeChartType === 'line' ? 'bg-[#00786f] text-white' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Line
+                      </button>
+                      <button
+                        onClick={() => setGradeChartType('pie')}
+                        className={`px-3 py-1 text-[9px] font-black uppercase tracking-wider rounded-sm transition-all ${
+                          gradeChartType === 'pie' ? 'bg-[#00786f] text-white' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Pie
+                      </button>
+                    </div>
+                    <CopyButton title="Grade Distribution" data={stats.gradeChartData} />
+                  </div>
                 </div>
                 <motion.div 
-                  key={activeTab}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
+                  key={`${activeTab}-${gradeChartType}`}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
                   className="h-[250px] w-full"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.gradeChartData} margin={{ bottom: 20, left: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" fontSize={10} axisLine={true} tickLine={true}>
-                        <Label value="Grade" offset={-10} position="insideBottom" fontSize={10} fontWeight="bold" fill="#64748b" />
-                      </XAxis>
-                      <YAxis fontSize={10} axisLine={true} tickLine={true}>
-                        <Label value="Students" angle={-90} position="insideLeft" offset={10} fontSize={10} fontWeight="bold" fill="#64748b" />
-                      </YAxis>
-                      <RechartsTooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        content={({ active, payload, label }: any) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-white p-2.5 border border-slate-200 shadow-xl rounded-none">
-                                <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-1.5 border-b border-slate-100 pb-1 flex items-center justify-between gap-4">
-                                  <span>Grade {label}</span>
-                                  <Award className="w-3 h-3 text-blue-600" />
-                                </p>
-                                <div className="space-y-1">
-                                  <div className="flex items-center justify-between gap-4">
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Count:</span>
-                                    <span className="text-xs font-black text-slate-900">{payload[0].value} Students</span>
-                                  </div>
-                                  <div className="flex items-center justify-between gap-4">
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Percentage:</span>
-                                    <span className="text-xs font-black text-emerald-600">{payload[0].payload.percentage}%</span>
+                    {gradeChartType === 'bar' ? (
+                      <BarChart data={stats.gradeChartData} margin={{ bottom: 20, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" fontSize={10} axisLine={true} tickLine={true}>
+                          <Label value="Grade" offset={-10} position="insideBottom" fontSize={10} fontWeight="bold" fill="#64748b" />
+                        </XAxis>
+                        <YAxis fontSize={10} axisLine={true} tickLine={true}>
+                          <Label value="Students" angle={-90} position="insideLeft" offset={10} fontSize={10} fontWeight="bold" fill="#64748b" />
+                        </YAxis>
+                        <RechartsTooltip 
+                          cursor={{ fill: '#f8fafc' }}
+                          content={({ active, payload, label }: any) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-white p-2.5 border border-slate-200 shadow-xl rounded-none">
+                                  <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-1.5 border-b border-slate-100 pb-1 flex items-center justify-between gap-4">
+                                    <span>Grade {label}</span>
+                                    <Award className="w-3 h-3 text-blue-600" />
+                                  </p>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between gap-4">
+                                      <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Count:</span>
+                                      <span className="text-xs font-black text-slate-900">{payload[0].value} Students</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-4">
+                                      <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Percentage:</span>
+                                      <span className="text-xs font-black text-emerald-600">{payload[0].payload.percentage}%</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar 
+                          dataKey="value" 
+                          radius={[2, 2, 0, 0]}
+                          activeBar={{ stroke: '#00786f', strokeWidth: 1, fillOpacity: 0.9 }}
+                          style={{ cursor: 'pointer' }}
+                          shape={<AnimatedBarShape radius={[2, 2, 0, 0]} />}
+                        >
+                          {stats.gradeChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={getGradeColorByValue(entry.name)} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    ) : gradeChartType === 'line' ? (
+                      <LineChart data={stats.gradeChartData} margin={{ bottom: 20, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" fontSize={10} axisLine={true} tickLine={true}>
+                          <Label value="Grade" offset={-10} position="insideBottom" fontSize={10} fontWeight="bold" fill="#64748b" />
+                        </XAxis>
+                        <YAxis fontSize={10} axisLine={true} tickLine={true}>
+                          <Label value="Students" angle={-90} position="insideLeft" offset={10} fontSize={10} fontWeight="bold" fill="#64748b" />
+                        </YAxis>
+                        <RechartsTooltip 
+                          content={({ active, payload, label }: any) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-white p-2.5 border border-slate-200 shadow-xl rounded-none">
+                                  <p className="text-[10px] font-black text-[#00786f] uppercase tracking-widest mb-1.5 border-b border-slate-100 pb-1 flex items-center justify-between gap-4">
+                                    <span>Grade {label}</span>
+                                    <Award className="w-3 h-3 text-[#00786f]" />
+                                  </p>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between gap-4">
+                                      <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Count:</span>
+                                      <span className="text-xs font-black text-slate-900">{payload[0].value} Students</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-4">
+                                      <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Percentage:</span>
+                                      <span className="text-xs font-black text-emerald-600">{payload[0].payload.percentage}%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <defs>
+                          <linearGradient id="gradeGradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#15803d" />
+                            <stop offset="25%" stopColor="#84cc16" />
+                            <stop offset="50%" stopColor="#eab308" />
+                            <stop offset="75%" stopColor="#ea580c" />
+                            <stop offset="100%" stopColor="#991b1b" />
+                          </linearGradient>
+                        </defs>
+                        <Line 
+                          type="monotone" 
+                          dataKey="value" 
+                          stroke="url(#gradeGradient)" 
+                          strokeWidth={3.5}
+                          dot={(dotProps: any) => {
+                            const { cx, cy, payload } = dotProps;
+                            const color = getGradeColorByValue(payload.name);
+                            return (
+                              <circle key={`dot-${payload.name}`} cx={cx} cy={cy} r={5} fill={color} stroke="#fff" strokeWidth={2.5} style={{ cursor: 'pointer' }} />
                             );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar 
-                        dataKey="value" 
-                        radius={[2, 2, 0, 0]}
-                        activeBar={{ stroke: '#00786f', strokeWidth: 1, fillOpacity: 0.9 }}
-                        style={{ cursor: 'pointer' }}
-                        shape={<AnimatedBarShape radius={[2, 2, 0, 0]} />}
-                      >
-                        {stats.gradeChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                          }}
+                          activeDot={{ r: 7, strokeWidth: 0 }}
+                        />
+                      </LineChart>
+                    ) : (
+                      <PieChart>
+                        <Pie
+                          data={stats.gradeChartData.filter(d => d.value > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="45%"
+                          outerRadius="80%"
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {stats.gradeChartData.filter(d => d.value > 0).map((entry, index) => (
+                            <Cell key={`pie-cell-${index}`} fill={getGradeColorByValue(entry.name)} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          content={({ active, payload }: any) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-white p-2.5 border border-slate-200 shadow-xl rounded-none">
+                                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1.5 border-b border-slate-100 pb-1 flex items-center justify-between gap-4">
+                                    <span>Grade {payload[0].name}</span>
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getGradeColorByValue(payload[0].name) }} />
+                                  </p>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between gap-4">
+                                      <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Count:</span>
+                                      <span className="text-xs font-black text-slate-900">{payload[0].value} Students</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-4">
+                                      <span className="text-xs font-bold text-[#00786f] uppercase tracking-tighter font-mono">Percentage:</span>
+                                      <span className="text-xs font-black text-emerald-600">{payload[0].payload.percentage}%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                      </PieChart>
+                    )}
                   </ResponsiveContainer>
                 </motion.div>
               </div>
@@ -997,13 +1202,28 @@ export function StatsView({ students, courseCode, section, semester, user, onBac
                         return null;
                       }}
                     />
+                    <defs>
+                      <linearGradient id="scoreRangeGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#15803d" />
+                        <stop offset="30%" stopColor="#84cc16" />
+                        <stop offset="60%" stopColor="#facc15" />
+                        <stop offset="85%" stopColor="#ea580c" />
+                        <stop offset="100%" stopColor="#b91c1c" />
+                      </linearGradient>
+                    </defs>
                     <Line 
                       type="monotone" 
                       dataKey="value" 
-                      stroke="#2563eb" 
-                      strokeWidth={3} 
-                      dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }}
-                      activeDot={{ r: 6, strokeWidth: 0 }}
+                      stroke="url(#scoreRangeGradient)" 
+                      strokeWidth={3.5} 
+                      dot={(dotProps: any) => {
+                        const { cx, cy, payload } = dotProps;
+                        const color = getScoreRangeColor(payload.name);
+                        return (
+                          <circle key={`dot-${payload.name}`} cx={cx} cy={cy} r={5} fill={color} stroke="#fff" strokeWidth={2.5} style={{ cursor: 'pointer' }} />
+                        );
+                      }}
+                      activeDot={{ r: 7, strokeWidth: 0 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1139,13 +1359,13 @@ export function StatsView({ students, courseCode, section, semester, user, onBac
                     />
                     <Bar dataKey="value" radius={[0, 0, 0, 0]} shape={<AnimatedBarShape radius={[0, 0, 0, 0]} />}>
                       {[
-                        { name: 'ZERO', color: '#dc2626' },    // 0% - Red
-                        { name: '1-5.5', color: '#ea580c' },  // 4%-20% - Orange-Red
-                        { name: '6-11.5', color: '#f97316' }, // 22%-42% - Orange
-                        { name: '12-16', color: '#f59e0b' },  // 44%-58% - Amber (towards 59%)
-                        { name: '16.5-20', color: '#2563eb' }, // 60%-73% - Blue (start 60%)
-                        { name: '21-24.5', color: '#0891b2' }, // 76%-89% - Cyan/Teal
-                        { name: '25-27.5', color: '#16a34a' }, // 91%-100% - Green
+                        { name: 'ZERO', color: '#b91c1c' },    // 0% - Dark Red
+                        { name: '1-5.5', color: '#dc2626' },   // 4%-20% - Red
+                        { name: '6-11.5', color: '#ea580c' },  // 22%-42% - Orange-Red
+                        { name: '12-16', color: '#f59e0b' },   // 44%-58% - Amber
+                        { name: '16.5-20', color: '#a3e635' },  // 60%-73% - Lime
+                        { name: '21-24.5', color: '#22c55e' }, // 76%-89% - Green
+                        { name: '25-27.5', color: '#15803d' }, // 91%-100% - Dark Green
                       ].map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -1446,7 +1666,7 @@ Qualitatively, the grade distribution reflects a ${
                       'varied academic range'
                     }. We observe that ${(stats.grades['A+'] || 0) + (stats.grades['A'] || 0) + (stats.grades['A-'] || 0)} students achieved high distinction (Excellent), while ${stats.failCount || 0} students currently fall below the required threshold for proficiency.
 
-The statistical dispersion is captured by an average grade of ${stats.avgScore || '0.0'}, anchored by a high of ${stats.maxScore || '0.0'} and a low of ${stats.minScore || '0.0'}. This ${String((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0))} point spread indicates ${
+The statistical dispersion is captured by an average grade of ${stats.avgScore || '0.0'}, anchored by a high of ${stats.maxScore || '0.0'} and a low of ${stats.minScore || '0.0'}. This ${String(((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0)).toFixed(2))} point spread indicates ${
                       (parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0) > 40 ? 'a wide variance in student readiness and background knowledge' :
                       'a relatively cohesive academic standing across the cohort'
                     }.
@@ -1510,7 +1730,7 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
                     <div className="space-y-4">
                       <p>
                         The statistical dispersion is captured by an average grade of <strong>{stats.avgScore || '0.0'}</strong>, anchored by a high of <strong>{stats.maxScore || '0.0'}</strong> and a low of <strong>{stats.minScore || '0.0'}</strong>. 
-                        This <strong>{String((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0))} point spread</strong> indicates {
+                        This <strong>{String(((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0)).toFixed(2))} point spread</strong> indicates {
                           (parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0) > 40 ? 'a wide variance in student readiness and background knowledge' :
                           'a relatively cohesive academic standing across the cohort'
                         }.

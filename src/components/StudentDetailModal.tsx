@@ -24,7 +24,40 @@ import html2canvas from 'html2canvas';
 
 export function formatMarkdownToJSX(text: string | null | undefined): React.ReactNode {
   if (!text) return null;
-  let cleaned = text;
+  
+  // Replace literal backslash-n sequences with actual newlines first
+  let cleaned = text.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+
+  // Clean up any newlines/spaces inside the asterisks themselves first
+  cleaned = cleaned.replace(/\*\*\s*([\r\n]+)\s*/g, "**");
+  cleaned = cleaned.replace(/\s*([\r\n]+)\s*\*\*/g, "**");
+
+  // Remove redundant newlines before or after short bold values (numbers, percentages, grade letters, short words)
+  const shortValuePattern = /(?:\d+(?:\.\d+)?%?|[A-FdD][+-]?|Pass|Fail|FA|W|WA|At-Risk)/i;
+  
+  // Replace actual newlines followed by a bold short value with a space and the bold value
+  cleaned = cleaned.replace(new RegExp(`\\s*[\\r\\n]+\\s*\\*\\*(${shortValuePattern.source})\\*\\*`, 'gi'), " **$1** ");
+  // Replace bold short value followed by actual newlines with the bold value and a space
+  cleaned = cleaned.replace(new RegExp(`\\*\\*(${shortValuePattern.source})\\*\\*\\s*[\\r\\n]+\\s*`, 'gi'), " **$1** ");
+
+  // Collapse consecutive newlines next to ANY numbers/percentages (even if they are not bolded)
+  cleaned = cleaned.replace(/[\r\n]+\s*(\d+(?:\.\d+)?%?)\b/gi, " $1");
+  cleaned = cleaned.replace(/\b(\d+(?:\.\d+)?%?)\s*[\r\n]+/gi, "$1 ");
+  
+  // Clean up any newlines or literal \n strings that are still immediately adjacent to strong elements
+  cleaned = cleaned.replace(/[\r\n]+\s*\*\*([^*]+)\*\*/g, (match, p1) => {
+    if (shortValuePattern.test(p1) || p1.trim().match(/^\d+(?:\.\d+)?%?$/)) {
+      return ` **${p1.trim()}**`;
+    }
+    return match;
+  });
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*\s*[\r\n]+/g, (match, p1) => {
+    if (shortValuePattern.test(p1) || p1.trim().match(/^\d+(?:\.\d+)?%?$/)) {
+      return `**${p1.trim()}** `;
+    }
+    return match;
+  });
+
   // Clean up empty double asterisks blocks (e.g. "** **" or "****")
   cleaned = cleaned.replace(/\*\*\s*\*\*/g, " ");
   // Clean up triple/quadruple asterisks
@@ -36,18 +69,22 @@ export function formatMarkdownToJSX(text: string | null | undefined): React.Reac
     cleaned = cleaned + "**";
   }
 
+  // Double check and replace multiple spaces
+  cleaned = cleaned.replace(/[ ]+/g, " ");
+
   const parts = cleaned.split("**");
   return (
     <>
       {parts.map((part, index) => {
         if (index % 2 === 1) {
           if (!part.trim()) return null;
+          const cleanedPart = part.replace(/[\r\n]+/g, " ").trim();
           return (
             <strong 
               key={index} 
               className="font-extrabold text-[#006056] bg-yellow-101 bg-yellow-100/60 dark:bg-yellow-900/20 px-1 py-0.5 rounded-sm border border-yellow-200/50 inline-block font-sans print:text-slate-950 print:bg-transparent print:border-none print:px-0 print:py-0"
             >
-              {part}
+              {cleanedPart}
             </strong>
           );
         }

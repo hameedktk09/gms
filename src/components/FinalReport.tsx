@@ -59,7 +59,40 @@ import { Button } from '@/components/ui/button';
 
 export function formatMarkdownToJSX(text: string | null | undefined): React.ReactNode {
   if (!text) return null;
-  let cleaned = text;
+  
+  // Replace literal backslash-n sequences with actual newlines first
+  let cleaned = text.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+
+  // Clean up any newlines/spaces inside the asterisks themselves first
+  cleaned = cleaned.replace(/\*\*\s*([\r\n]+)\s*/g, "**");
+  cleaned = cleaned.replace(/\s*([\r\n]+)\s*\*\*/g, "**");
+
+  // Remove redundant newlines before or after short bold values (numbers, percentages, grade letters, short words)
+  const shortValuePattern = /(?:\d+(?:\.\d+)?%?|[A-FdD][+-]?|Pass|Fail|FA|W|WA|At-Risk)/i;
+  
+  // Replace actual newlines followed by a bold short value with a space and the bold value
+  cleaned = cleaned.replace(new RegExp(`\\s*[\\r\\n]+\\s*\\*\\*(${shortValuePattern.source})\\*\\*`, 'gi'), " **$1** ");
+  // Replace bold short value followed by actual newlines with the bold value and a space
+  cleaned = cleaned.replace(new RegExp(`\\*\\*(${shortValuePattern.source})\\*\\*\\s*[\\r\\n]+\\s*`, 'gi'), " **$1** ");
+
+  // Collapse consecutive newlines next to ANY numbers/percentages (even if they are not bolded)
+  cleaned = cleaned.replace(/[\r\n]+\s*(\d+(?:\.\d+)?%?)\b/gi, " $1");
+  cleaned = cleaned.replace(/\b(\d+(?:\.\d+)?%?)\s*[\r\n]+/gi, "$1 ");
+  
+  // Clean up any newlines or literal \n strings that are still immediately adjacent to strong elements
+  cleaned = cleaned.replace(/[\r\n]+\s*\*\*([^*]+)\*\*/g, (match, p1) => {
+    if (shortValuePattern.test(p1) || p1.trim().match(/^\d+(?:\.\d+)?%?$/)) {
+      return ` **${p1.trim()}**`;
+    }
+    return match;
+  });
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*\s*[\r\n]+/g, (match, p1) => {
+    if (shortValuePattern.test(p1) || p1.trim().match(/^\d+(?:\.\d+)?%?$/)) {
+      return `**${p1.trim()}** `;
+    }
+    return match;
+  });
+
   // Clean up empty double asterisks blocks (e.g. "** **" or "****")
   cleaned = cleaned.replace(/\*\*\s*\*\*/g, " ");
   // Clean up triple/quadruple asterisks
@@ -71,18 +104,22 @@ export function formatMarkdownToJSX(text: string | null | undefined): React.Reac
     cleaned = cleaned + "**";
   }
 
+  // Double check and replace multiple spaces
+  cleaned = cleaned.replace(/[ ]+/g, " ");
+
   const parts = cleaned.split("**");
   return (
     <>
       {parts.map((part, index) => {
         if (index % 2 === 1) {
           if (!part.trim()) return null;
+          const cleanedPart = part.replace(/[\r\n]+/g, " ").trim();
           return (
             <strong 
               key={index} 
               className="font-extrabold text-[#006056] bg-yellow-101 bg-yellow-100/60 dark:bg-yellow-900/20 px-1 py-0.5 rounded-sm border border-yellow-200/50 inline-block font-sans print:text-slate-950 print:bg-transparent print:border-none print:px-0 print:py-0"
             >
-              {part}
+              {cleanedPart}
             </strong>
           );
         }
@@ -91,6 +128,44 @@ export function formatMarkdownToJSX(text: string | null | undefined): React.Reac
     </>
   );
 }
+
+const GRADE_COLORS: Record<string, string> = {
+  'A+': '#15803d',
+  'A': '#16a34a',
+  'A-': '#22c55e',
+  'B+': '#84cc16',
+  'B': '#a3e635',
+  'B-': '#d9f99d',
+  'C+': '#fde047',
+  'C': '#facc15',
+  'C-': '#f59e0b',
+  'D+': '#f97316',
+  'D': '#ea580c',
+  'D-': '#dc2626',
+  'F': '#991b1b'
+};
+
+const SCORE_RANGE_COLORS: Record<string, string> = {
+  '90-100': '#15803d',
+  '85-89': '#16a34a',
+  '80-84': '#22c55e',
+  '75-79': '#84cc16',
+  '70-74': '#a3e635',
+  '65-69': '#fde047',
+  '60-64': '#facc15',
+  '55-59': '#f59e0b',
+  '50-54': '#f97316',
+  '45-49': '#ea580c',
+  '0-44': '#b91c1c'
+};
+
+const getGradeColorByValue = (gradeName: string) => {
+  return GRADE_COLORS[gradeName] || '#64748b';
+};
+
+const getScoreRangeColor = (rangeName: string) => {
+  return SCORE_RANGE_COLORS[rangeName] || '#3b82f6';
+};
 
 interface FinalReportProps {
   students: StudentData[];
@@ -960,7 +1035,7 @@ export function FinalReport({
                       />
                       <Bar dataKey="value" radius={[2, 2, 0, 0]}>
                         {gradeChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.name === 'F' ? '#ef4444' : '#3b82f6'} />
+                          <Cell key={`cell-${index}`} fill={getGradeColorByValue(entry.name)} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -995,7 +1070,11 @@ export function FinalReport({
                         contentStyle={{ fontSize: '10px', borderRadius: '0px', border: '1px solid #e2e8f0', boxShadow: 'none' }}
                         cursor={{ fill: '#f8fafc' }}
                       />
-                      <Bar dataKey="value" fill="#6366f1" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+                        {rangeChartData.map((entry, index) => (
+                          <Cell key={`cell-range-${index}`} fill={getScoreRangeColor(entry.name)} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1348,7 +1427,7 @@ export function FinalReport({
                     <div className="space-y-4">
                       <p>
                         The statistical dispersion is captured by an average grade of <strong>{avgScore || '0.0'}</strong>, anchored by a high of <strong>{stats.maxScore || '0.0'}</strong> and a low of <strong>{stats.minScore || '0.0'}</strong>. 
-                        This <strong>{String((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0))} point spread</strong> indicates {
+                        This <strong>{String(((parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0)).toFixed(2))} point spread</strong> indicates {
                           (parseFloat(stats.maxScore) || 0) - (parseFloat(stats.minScore) || 0) > 40 ? 'a wide variance in student readiness and background knowledge' :
                           'a relatively cohesive academic standing across the cohort'
                         }.
