@@ -133,7 +133,7 @@ export function calculateFinalValues(student: StudentData) {
       else if (scoreNum >= 70) gradeLetter = 'C-';
       else if (scoreNum >= 66) gradeLetter = 'D+';
       else if (scoreNum >= 62) gradeLetter = 'D';
-      else if (scoreNum >= 60) gradeLetter = 'D-';
+      else if (scoreNum >= 59.4) gradeLetter = 'D-';
       else if (has_any) gradeLetter = 'F';
     }
   }
@@ -148,13 +148,13 @@ export function calculateFinalValues(student: StudentData) {
     finallyValue,
     gradeLetter, // Always return the calculated grade letter
     finallyClass: finallyValue === 'Pass' 
-        ? (total_num >= 60 ? 'text-green-600 font-bold' : 'text-orange-600 font-bold') 
+        ? (total_num >= 59.4 ? 'text-green-600 font-bold' : 'text-orange-600 font-bold') 
         : (['Not Pass', 'FA', 'WA', 'PST', 'R', 'F'].includes(finallyValue) ? 'text-red-600 font-bold' : (finallyValue ? 'text-amber-600 font-bold' : '')),
     gradeLetterClass: (gradeLetter === 'F' || finallyValue === 'FA' || finallyValue === 'WA') 
         ? 'text-red-600 font-bold' 
         : (gradeLetter ? 'text-green-600 font-bold' : ''),
     totalClass: has_any 
-        ? (total_num >= 60 ? 'text-green-600 font-bold' : (total_num > 0 ? 'text-red-600 font-bold' : ''))
+        ? (total_num >= 59.4 ? 'text-green-600 font-bold' : (total_num > 0 ? 'text-red-600 font-bold' : ''))
         : '',
     originalTotal: total_num,
     hasFinalEntered
@@ -289,8 +289,8 @@ export function generatePetitionResponse(student: StudentData) {
     return "The student has exceeded the University the class attendance policy. This violation of the attendance requirements has resulted in an automatic failure (FA) for the course, regardless of academic performance.";
   }
 
-  const isFail = totalScore > 0 && totalScore < 60;
-  const isPass = totalScore >= 60;
+  const isFail = totalScore > 0 && totalScore < 59.4;
+  const isPass = totalScore >= 59.4;
   
   if (!isFail && !isPass && fv.finallyValue !== 'Not Pass') return '';
 
@@ -410,7 +410,7 @@ export function getStudentStatus(student: StudentData, totalScore: number) {
   if (n.includes('(I)') || s === 'I') return 'I';
   if (n.includes('(PST)') || s === 'PST') return 'PST';
   
-  if (totalScore >= 60) return 'Pass';
+  if (totalScore >= 59.4) return 'Pass';
   if (totalScore > 0) return 'Not Pass';
   
   return 'None';

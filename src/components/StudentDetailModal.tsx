@@ -81,6 +81,16 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
       } else {
         setAiRemarks(null);
       }
+
+      fetch(`/api/cache/remarks/${student.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.remarks) {
+            setAiRemarks(data.remarks);
+            localStorage.setItem(`ai_student_remarks_${student.id}`, data.remarks);
+          }
+        })
+        .catch(err => console.debug("No server cached remarks:", err));
     }
   }, [isOpen, student]);
   
@@ -142,6 +152,13 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
       if (data.success && data.remarks) {
         setAiRemarks(data.remarks);
         localStorage.setItem(`ai_student_remarks_${student.id}`, data.remarks);
+        
+        fetch(`/api/cache/remarks/${student.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ remarks: data.remarks })
+        }).catch(err => console.error("Failed to cache remarks in backend:", err));
+
         toast.success("AI remarks prepared successfully");
       } else {
         throw new Error("Invalid response format");
@@ -630,6 +647,7 @@ export function StudentDetailModal({ student, isOpen, onClose }: StudentDetailMo
                         size="sm"
                         onClick={() => {
                           localStorage.removeItem(`ai_student_remarks_${student.id}`);
+                          fetch(`/api/cache/remarks/${student.id}`, { method: 'DELETE' }).catch(err => console.error(err));
                           setAiRemarks(null);
                           toast.info("AI remarks reset to standard template.");
                         }}

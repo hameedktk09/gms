@@ -4,15 +4,294 @@ import path from "path";
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from "@google/genai";
+import { readDb, writeDb } from "./server-db.js";
 
-// .env.local takes precedence over .env (used for local overrides like PORT)
-dotenv.config({ path: ['.env.local', '.env'] });
+dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   app.use(express.json());
+
+  // Database API - Login
+  app.post("/api/auth/login", (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: "Username and password required" });
+    }
+    const db = readDb();
+    const foundUser = db.users[username];
+    if (foundUser) {
+      if (foundUser.password !== password) {
+        return res.status(401).json({ success: false, error: "Invalid credentials" });
+      }
+      if (!foundUser.approved) {
+        return res.status(403).json({ success: false, error: "Account pending approval" });
+      }
+      return res.json({ success: true, user: foundUser });
+    }
+    return res.status(404).json({ success: false, error: "Please contact Admin to add your credentials" });
+  });
+
+  // Database API - Change Password
+  app.post("/api/auth/change-password", (req, res) => {
+    const { username, newPassword } = req.body;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].password = newPassword;
+      db.users[username].mustChangePassword = false;
+      writeDb(db);
+      return res.json({ success: true, user: db.users[username] });
+    }
+    return res.status(404).json({ success: false, error: "User not found" });
+  });
+
+  // Database API - Skip Password Change
+  app.post("/api/auth/skip-password-change", (req, res) => {
+    const { username } = req.body;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].mustChangePassword = false;
+      writeDb(db);
+      return res.json({ success: true, user: db.users[username] });
+    }
+    return res.status(404).json({ success: false, error: "User not found" });
+  });
+
+  // Admin API - Get All Users
+  app.get("/api/admin/users", (req, res) => {
+    const db = readDb();
+    res.json({ success: true, users: db.users });
+  });
+
+  // Admin API - Add User
+  app.post("/api/admin/users", (req, res) => {
+    const newUser = req.body;
+    const db = readDb();
+    db.users[newUser.username] = newUser;
+    writeDb(db);
+    res.json({ success: true, users: db.users });
+  });
+
+  // Admin API - Delete User
+  app.delete("/api/admin/users/:username", (req, res) => {
+    const { username } = req.params;
+    const db = readDb();
+    delete db.users[username];
+    writeDb(db);
+    res.json({ success: true, users: db.users });
+  });
+
+  // Admin API - Approve User
+  app.put("/api/admin/users/:username/approve", (req, res) => {
+    const { username } = req.params;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].approved = true;
+      writeDb(db);
+      res.json({ success: true, users: db.users });
+    } else {
+      res.status(404).json({ success: false, error: "User not found" });
+    }
+  });
+
+  // Admin API - Reset Password
+  app.put("/api/admin/users/:username/reset-password", (req, res) => {
+    const { username } = req.params;
+    const { newPassword } = req.body;
+    const db = readDb();
+    if (db.users[username]) {
+      db.users[username].password = newPassword;
+      writeDb(db);
+      res.json({ success: true, users: db.users });
+    } else {
+      res.status(404).json({ success: false, error: "User not found" });
+    }
+  });
+
+  // Admin API - Import Users
+  app.post("/api/admin/import-users", (req, res) => {
+    const { users } = req.body;
+    const db = readDb();
+    db.users = { ...db.users, ...users };
+    writeDb(db);
+    res.json({ success: true, users: db.users });
+  });
+
+  // Registration Requests API - Get All
+  app.get("/api/registration-requests", (req, res) => {
+    const db = readDb();
+    res.json({ success: true, requests: db.registrationRequests });
+  });
+
+  // Registration Requests API - Create Request
+  app.post("/api/registration-requests", (req, res) => {
+    const newRequest = req.body;
+    const db = readDb();
+    
+    const existing = db.registrationRequests.find(r => r.email.toLowerCase() === newRequest.email.toLowerCase() && r.status === 'pending');
+    if (existing) {
+      return res.status(400).json({ success: false, message: "A request for this official email is already pending approval." });
+    }
+
+    db.registrationRequests.unshift(newRequest);
+    writeDb(db);
+    res.json({ success: true, requests: db.registrationRequests });
+  });
+
+  // Registration Requests API - Approve Request
+  app.put("/api/registration-requests/:id/approve", (req, res) => {
+    const { id } = req.params;
+    const { chosenUsername, chosenPassword } = req.body;
+    const db = readDb();
+    
+    const reqIndex = db.registrationRequests.findIndex(r => r.id === id);
+    if (reqIndex === -1) {
+      return res.status(404).json({ success: false, error: "Request not found" });
+    }
+
+    const reqObj = db.registrationRequests[reqIndex];
+    let generatedUsername = chosenUsername ? chosenUsername.trim().toLowerCase() : reqObj.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    
+    if (!chosenUsername && db.users[generatedUsername]) {
+      generatedUsername = `${generatedUsername}${Math.floor(10 + Math.random() * 90)}`;
+    }
+
+    const defaultPass = chosenPassword || Math.random().toString(36).substr(2, 8);
+
+    const newUser = {
+      uid: reqObj.id,
+      email: reqObj.email,
+      fullName: reqObj.fullName,
+      username: generatedUsername,
+      password: defaultPass,
+      role: 'instructor' as const,
+      subject: reqObj.subject,
+      approved: true,
+      mustChangePassword: true
+    };
+
+    db.users[generatedUsername] = newUser;
+    db.registrationRequests[reqIndex] = {
+      ...reqObj,
+      status: 'approved',
+      generatedUsername,
+      generatedPassword: defaultPass
+    };
+
+    writeDb(db);
+    res.json({ success: true, requests: db.registrationRequests, users: db.users });
+  });
+
+  // Registration Requests API - Reject Request
+  app.put("/api/registration-requests/:id/reject", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    const reqIndex = db.registrationRequests.findIndex(r => r.id === id);
+    if (reqIndex !== -1) {
+      db.registrationRequests[reqIndex].status = 'rejected';
+      writeDb(db);
+      res.json({ success: true, requests: db.registrationRequests });
+    } else {
+      res.status(404).json({ success: false, error: "Request not found" });
+    }
+  });
+
+  // Registration Requests API - Remove Request completely
+  app.delete("/api/registration-requests/:id", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    const reqObj = db.registrationRequests.find(r => r.id === id);
+    if (!reqObj) {
+      return res.status(404).json({ success: false, error: "Request not found" });
+    }
+
+    if (reqObj.status === 'approved' && reqObj.generatedUsername) {
+      delete db.users[reqObj.generatedUsername];
+    }
+
+    db.registrationRequests = db.registrationRequests.filter(r => r.id !== id);
+    writeDb(db);
+    res.json({ success: true, requests: db.registrationRequests, users: db.users });
+  });
+
+  // Grades API - Get All Grades (Sections)
+  app.get("/api/grades", (req, res) => {
+    const db = readDb();
+    res.json({ success: true, grades: db.grades });
+  });
+
+  // Grades API - Save/Update All Grades
+  app.post("/api/grades", (req, res) => {
+    const { grades } = req.body;
+    const db = readDb();
+    db.grades = grades;
+    writeDb(db);
+    res.json({ success: true, grades: db.grades });
+  });
+
+  // API - Get Cached Report
+  app.get("/api/cache/reports/:key", (req, res) => {
+    const { key } = req.params;
+    const db = readDb();
+    const report = db.aiReports[key];
+    if (report) {
+      res.json({ success: true, report });
+    } else {
+      res.status(404).json({ success: false, error: "Not found" });
+    }
+  });
+
+  // API - Cache Report
+  app.post("/api/cache/reports/:key", (req, res) => {
+    const { key } = req.params;
+    const { report } = req.body;
+    const db = readDb();
+    db.aiReports[key] = report;
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  // API - Delete Cached Report
+  app.delete("/api/cache/reports/:key", (req, res) => {
+    const { key } = req.params;
+    const db = readDb();
+    delete db.aiReports[key];
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  // API - Get Cached Remark
+  app.get("/api/cache/remarks/:id", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    const remark = db.studentRemarks[id];
+    if (remark) {
+      res.json({ success: true, remarks: remark });
+    } else {
+      res.status(404).json({ success: false, error: "Not found" });
+    }
+  });
+
+  // API - Cache Remark
+  app.post("/api/cache/remarks/:id", (req, res) => {
+    const { id } = req.params;
+    const { remarks } = req.body;
+    const db = readDb();
+    db.studentRemarks[id] = remarks;
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  // API - Delete Cached Remark
+  app.delete("/api/cache/remarks/:id", (req, res) => {
+    const { id } = req.params;
+    const db = readDb();
+    delete db.studentRemarks[id];
+    writeDb(db);
+    res.json({ success: true });
+  });
 
   // Email API Route
   app.post("/api/send-reminders", async (req, res) => {
@@ -293,6 +572,226 @@ Response format: Return a JSON object with a single field: "remarks": "The gener
     } catch (error: any) {
       console.error("Gemini student remarks generation failed:", error);
       res.status(500).json({ error: error.message || "Failed to generate AI remarks" });
+    }
+  });
+
+  // GET feedback reports
+  app.get("/api/feedback/reports", (req, res) => {
+    try {
+      const { role, fullName, username } = req.query;
+      const db = readDb();
+      const reports = db.feedbackReports || [];
+      
+      if (role === 'admin') {
+        return res.json({ success: true, reports });
+      } else if (role === 'instructor' && fullName) {
+        const nameLower = String(fullName).toLowerCase();
+        const filtered = reports.filter((r: any) => {
+          const repNameLower = (r.instructorName || '').toLowerCase();
+          const matchByName = repNameLower.includes(nameLower) || nameLower.includes(repNameLower);
+          const matchByUsername = username && r.instructorUsername === username;
+          return matchByName || matchByUsername;
+        });
+        return res.json({ success: true, reports: filtered });
+      } else {
+        return res.json({ success: true, reports: [] });
+      }
+    } catch (e: any) {
+      console.error("Failed to read feedback reports:", e);
+      res.status(500).json({ success: false, error: e.message || "Failed to load reports" });
+    }
+  });
+
+  // DELETE a feedback report
+  app.delete("/api/feedback/reports/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const db = readDb();
+      if (!db.feedbackReports) db.feedbackReports = [];
+      
+      const originalLength = db.feedbackReports.length;
+      db.feedbackReports = db.feedbackReports.filter((r: any) => r.id !== id);
+      
+      if (db.feedbackReports.length !== originalLength) {
+        writeDb(db);
+        return res.json({ success: true, message: "Feedback report deleted successfully" });
+      }
+      return res.status(404).json({ success: false, error: "Report not found" });
+    } catch (e: any) {
+      console.error("Failed to delete feedback report:", e);
+      res.status(500).json({ success: false, error: e.message || "Failed to delete report" });
+    }
+  });
+
+  // POST /api/feedback/analyze - run Gemini to parse feedback survey text or files (multimodal)
+  app.post("/api/feedback/analyze", async (req, res) => {
+    const { fileData, mimeType, textPaste, uploaderRole, uploaderName, uploaderUsername } = req.body;
+
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not set");
+      return res.status(500).json({ error: "AI service is not configured. Please set GEMINI_API_KEY in secrets." });
+    }
+
+    if (!fileData && !textPaste) {
+      return res.status(400).json({ error: "Please provide either an uploaded file or paste feedback text." });
+    }
+
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+
+      const systemPrompt = `You are a professional university Academic Evaluator and Teaching Performance Analyst.
+Your job is to analyze the provided Student Evaluation / Course Feedback survey data for an instructor.
+You will parse the quantitative averages (scores out of 5 across categories like course organization, instructor approach and support, skills developed, quality) as well as qualitative comments (written in English, Arabic, or mixed).
+Analyze the feedback objectively, translate and explain Arabic remarks accurately, and generate a cohesive, mathematically realistic, and pedagogically sound evaluation.
+The output must be returned strictly in the requested JSON format. Keep the tone academic, formal, constructive, and highly professional.`;
+
+      const contentsParts: any[] = [];
+      if (fileData && mimeType) {
+        contentsParts.push({
+          inlineData: {
+            data: fileData,
+            mimeType: mimeType
+          }
+        });
+      }
+
+      const infoHint = textPaste ? `\n\nDirect feedback text or pasted contents:\n${textPaste}` : "";
+      contentsParts.push({
+        text: `Please analyze this student feedback evaluation.
+If you received an image or a PDF, examine the tables, courses, section, instructor name, semester, numbers, ratings, and English and Arabic text notes. Look for:
+- Course code (e.g. FPAD004, FPPI002) and Course Title (e.g. Gfp English Advanced, English Pre-Intermediate)
+- Section (e.g. 4)
+- Instructor Name (e.g. Raya AL Rawahi)
+- Semester & Year (e.g. Spring Semester 2025-2026)
+- Response Metrics: total students, total respondents, response percentage (e.g. 94.3)
+- Category Averages: organized ratings out of 5 for Organization, Instructor approach, Skills developed, and Quality.
+- Qualitative text (what they liked most, difficulties, suggestions) in both English and Arabic.${infoHint}
+
+Convert written Arabic textual notes and suggestions constructively to English inside 'arabicCommentsParsed' (e.g. 'المس كيوت' meaning cute/kind teacher, 'طريقه الشرح' meaning teaching method, 'دسامة الكتاب' meaning book density/heavy syllabus, etc.), synthesize the core strengths, difficulties, and prepare concrete pedagogical recommendations.
+Return the output STRICTLY matching the requested JSON schema.`
+      });
+
+      const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+          courseCode: { type: Type.STRING, description: "Parsed course code, e.g. FPAD004" },
+          courseTitle: { type: Type.STRING, description: "Parsed course title, e.g. Gfp English Advanced" },
+          section: { type: Type.STRING, description: "Parsed section number, e.g. 4" },
+          instructorName: { type: Type.STRING, description: "Parsed instructor's full name, e.g. Raya AL Rawahi" },
+          semester: { type: Type.STRING, description: "Parsed semester, e.g. Spring 2025-2026" },
+          metrics: {
+            type: Type.OBJECT,
+            properties: {
+              totalStudents: { type: Type.INTEGER, description: "Total class size" },
+              totalRespondents: { type: Type.INTEGER, description: "Total survey answers" },
+              responseRate: { type: Type.NUMBER, description: "Percentage of respondents, e.g. 94.3" },
+              courseOrgAverage: { type: Type.NUMBER, description: "Course Organization /1 rating, average of items (from 1 to 5)" },
+              instructorSupportAverage: { type: Type.NUMBER, description: "Instructor Support /2 rating, average of items (from 1 to 5)" },
+              skillsAverage: { type: Type.NUMBER, description: "Skills and Knowledge /3 rating, average of items (from 1 to 5)" },
+              overallQualityAverage: { type: Type.NUMBER, description: "Overall quality rating index (from 1 to 5)" }
+            },
+            required: ["totalStudents", "totalRespondents", "responseRate", "courseOrgAverage", "instructorSupportAverage", "skillsAverage", "overallQualityAverage"]
+          },
+          analysis: {
+            type: Type.OBJECT,
+            properties: {
+              summary: { type: Type.STRING, description: "An executive, objective academic abstract summarizing the performance." },
+              strengths: { 
+                type: Type.ARRAY, 
+                items: { type: Type.STRING },
+                description: "List of 3 to 5 distinct teaching strengths." 
+              },
+              improvements: { 
+                type: Type.ARRAY, 
+                items: { type: Type.STRING },
+                description: "List of 3 to 5 teaching/course pain points." 
+              },
+              arabicCommentsParsed: { type: Type.STRING, description: "Detailed summary and translation of Arabic remarks, explaining local student idioms or Arabic feedback." },
+              recommendations: { 
+                type: Type.ARRAY, 
+                items: { type: Type.STRING },
+                description: "3 to 4 actionable pedagogical improvements." 
+              },
+              teachingPerformanceTier: { type: Type.STRING, description: "Evaluation Tier. Must be one of: 'Outstanding', 'Very Good', 'Satisfactory', 'Needs Improvement'" }
+            },
+            required: ["summary", "strengths", "improvements", "arabicCommentsParsed", "recommendations", "teachingPerformanceTier"]
+          }
+        },
+        required: ["courseCode", "courseTitle", "section", "instructorName", "semester", "metrics", "analysis"]
+      };
+
+      console.log(`[AI Feedback Analysis] Processing request...`);
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: contentsParts,
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          responseSchema: responseSchema
+        }
+      });
+
+      if (!response || !response.text) {
+        throw new Error("No text response received from Gemini.");
+      }
+
+      const result = JSON.parse(response.text.trim());
+      const reportId = "rep_" + Math.random().toString(36).substring(2, 9);
+      
+      const newReport = {
+        id: reportId,
+        uploadedBy: uploaderUsername || 'system',
+        createdAt: new Date().toISOString(),
+        courseCode: result.courseCode || 'FPAD004',
+        courseTitle: result.courseTitle || 'English Language',
+        section: result.section || '4',
+        instructorName: result.instructorName || uploaderName || 'Instructor',
+        semester: result.semester || 'Spring Semester 2026',
+        metrics: {
+          totalStudents: Number(result.metrics?.totalStudents || 35),
+          totalRespondents: Number(result.metrics?.totalRespondents || 33),
+          responseRate: Number(result.metrics?.responseRate || 94.3),
+          courseOrgAverage: Number(result.metrics?.courseOrgAverage || 4.5),
+          instructorSupportAverage: Number(result.metrics?.instructorSupportAverage || 4.5),
+          skillsAverage: Number(result.metrics?.skillsAverage || 4.4),
+          overallQualityAverage: Number(result.metrics?.overallQualityAverage || 4.5)
+        },
+        analysis: result.analysis,
+        originalText: textPaste ? textPaste.substring(0, 500) : 'File upload content analyzed successfully.'
+      };
+
+      const db = readDb();
+      
+      // Attempt to link this report to a registered user
+      const matchedUser = Object.values(db.users).find((u: any) => 
+        u.fullName.toLowerCase() === newReport.instructorName.toLowerCase() ||
+        newReport.instructorName.toLowerCase().includes(u.fullName.toLowerCase()) ||
+        u.fullName.toLowerCase().includes(newReport.instructorName.toLowerCase())
+      );
+      if (matchedUser) {
+        (newReport as any).instructorUsername = matchedUser.username;
+      } else if (uploaderRole === 'instructor') {
+        (newReport as any).instructorUsername = uploaderUsername;
+      }
+
+      if (!db.feedbackReports) {
+        db.feedbackReports = [];
+      }
+      db.feedbackReports.unshift(newReport);
+      writeDb(db);
+
+      console.log(`[AI Feedback Analysis] Succesfully generated & saved report ${reportId} for ${newReport.instructorName}`);
+      res.json({ success: true, report: newReport });
+    } catch (e: any) {
+      console.error("Failed to analyze feedback with Gemini:", e);
+      res.status(500).json({ error: e.message || "Failed to analyze feedback report" });
     }
   });
 

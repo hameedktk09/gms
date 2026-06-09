@@ -221,6 +221,18 @@ export function StatsView({ students, courseCode, section, semester, user, onBac
     }
   }, [initialTab]);
 
+  React.useEffect(() => {
+    fetch(`/api/cache/reports/ai_reports_${courseCode}_${section}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.report) {
+          setAiReports(data.report);
+          localStorage.setItem(`ai_reports_${courseCode}_${section}`, JSON.stringify(data.report));
+        }
+      })
+      .catch(err => console.debug("No server cached report found yet:", err));
+  }, [courseCode, section]);
+
   const getCourseLabel = (val: string) => {
     return COURSE_OPTIONS.find(o => o.value === val)?.label || val;
   };
@@ -1822,6 +1834,7 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
                 variant="outline"
                 onClick={() => {
                   localStorage.removeItem(`ai_reports_${courseCode}_${section}`);
+                  fetch(`/api/cache/reports/ai_reports_${courseCode}_${section}`, { method: 'DELETE' }).catch(err => console.error(err));
                   setAiReports(null);
                   toast.info("AI report cleared.");
                 }}
@@ -1857,6 +1870,12 @@ Female Performance: With ${stats.genderStats.female.total} enrolled female stude
                   const data = await response.json();
                   if (data.success) {
                     localStorage.setItem(`ai_reports_${courseCode}_${section}`, JSON.stringify(data.reports));
+                    fetch(`/api/cache/reports/ai_reports_${courseCode}_${section}`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ report: data.reports })
+                    }).catch(err => console.error("Failed to post report cache to backend:", err));
+
                     setAiReports(data.reports);
                     toast.success("AI Academic Reports generated successfully!");
                     

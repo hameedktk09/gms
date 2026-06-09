@@ -89,6 +89,7 @@ import {
   Users,
   KeyRound,
   Plus,
+  Sparkles,
 } from 'lucide-react';
 import { 
   Select, 
@@ -477,8 +478,8 @@ export function GradeTable({
           // Core fallbacks if nothing matched
           if (idIndex === -1) idIndex = 0;
           if (nameIndex === -1) nameIndex = idIndex === 0 ? 1 : 0;
-          if (genderIndex === -1) genderIndex = 2;
-          if (statusIndex === -1) statusIndex = 3;
+          if (genderIndex === -1) genderIndex = -1;
+          if (statusIndex === -1) statusIndex = -1;
 
           // Crucial safeguard: Ensure student Name and ID don't point to the exact same column
           if (nameIndex === idIndex) {
@@ -489,16 +490,95 @@ export function GradeTable({
             }
           }
 
+          // Find indices of final weighted grade columns
+          let partPortIdx = -1;
+          let testsIdx = -1;
+          let presIdx = -1;
+          let midtermIdx = -1;
+          let finalIdx = -1;
+          
+          // Find indices of raw grade columns
+          let raw_partIdx = -1;
+          let raw_eportIdx = -1;
+          let raw_presIdx = -1;
+          let raw_pq1Idx = -1;
+          let raw_pq2Idx = -1;
+          let raw_t1Idx = -1;
+          let raw_t2Idx = -1;
+          let raw_stestIdx = -1;
+          let raw_wtestIdx = -1;
+          let raw_wportIdx = -1;
+          let raw_mid1Idx = -1;
+          let raw_mid2Idx = -1;
+          let raw_fin1Idx = -1;
+          let raw_fin2Idx = -1;
+
+          headers.forEach((h, idx) => {
+            if (idx === idIndex || idx === nameIndex) return;
+            const hClean = h.toLowerCase().trim();
+            
+            // Final/Summative Headers Matching (matching columns from user's CSV)
+            if ((hClean.includes('participation') && hClean.includes('portfolio')) || 
+                (hClean.includes('participation') && hClean.includes('e-portfolio')) || 
+                (hClean.includes('participation') && hClean.includes('eportfolio')) || 
+                hClean.includes('part and e-port') || 
+                hClean.includes('part & e-port')) {
+              partPortIdx = idx;
+            } else if (hClean.includes('tests of') || hClean.includes('tests [') || hClean === 'tests' || hClean === 'tests of 30') {
+              testsIdx = idx;
+            } else if (hClean.includes('presentation of') || hClean.includes('presentation [') || hClean === 'presentation' || hClean === 'presentation of 10') {
+              presIdx = idx;
+            } else if (hClean.includes('midterm of') || hClean.includes('midterm [') || hClean === 'midterm' || hClean === 'midterm of 20') {
+              midtermIdx = idx;
+            } else if (hClean.includes('final of') || hClean.includes('final [') || hClean.includes('final exam') || hClean === 'final of 30' || hClean === 'final') {
+              finalIdx = idx;
+            }
+            
+            // Raw Headers Matching (keys 3 to 16)
+            else if (hClean === 'participation' || hClean === 'part' || hClean.startsWith('participation (')) {
+              raw_partIdx = idx;
+            } else if (hClean === 'e-portfolio' || hClean === 'eportfolio' || hClean === 'e-port' || hClean === 'eport') {
+              raw_eportIdx = idx;
+            } else if (hClean === 'presentation' || hClean === 'pres') {
+              raw_presIdx = idx;
+            } else if (hClean.includes('pop quiz 1') || hClean === 'pq1' || hClean === 'quiz1' || hClean === 'quiz 1') {
+              raw_pq1Idx = idx;
+            } else if (hClean.includes('pop quiz 2') || hClean === 'pq2' || hClean === 'quiz2' || hClean === 'quiz 2') {
+              raw_pq2Idx = idx;
+            } else if (hClean.includes('test 1') || hClean === 't1') {
+              raw_t1Idx = idx;
+            } else if (hClean.includes('test 2') || hClean === 't2') {
+              raw_t2Idx = idx;
+            } else if (hClean.includes('speaking test') || hClean === 's. test' || hClean === 's test' || hClean === 'speaking') {
+              raw_stestIdx = idx;
+            } else if (hClean.includes('writing test') || hClean === 'w. test' || hClean === 'w test' || hClean === 'writing') {
+              raw_wtestIdx = idx;
+            } else if (hClean.includes('writing portfolio') || hClean === 'w. port' || hClean === 'w port' || hClean === 'writing portfolio') {
+              raw_wportIdx = idx;
+            } else if (hClean.includes('midterm lrgv') || hClean.includes('midterm (lrgv)') || hClean.includes('midterm lrgv 40')) {
+              raw_mid1Idx = idx;
+            } else if (hClean.includes('midterm writing') || hClean.includes('midterm writing 10')) {
+              raw_mid2Idx = idx;
+            } else if (hClean.includes('final lrgv') || hClean.includes('final (lrgv)') || hClean.includes('final lrgv 40')) {
+              raw_fin1Idx = idx;
+            } else if (hClean.includes('final writing') || hClean.includes('final writing 10')) {
+              raw_fin2Idx = idx;
+            }
+          });
+
+          // Fallback presentation matching if exact final/raw checks overlapping
+          if (presIdx === -1 && raw_presIdx !== -1) presIdx = raw_presIdx;
+
           for (let i = 1; i < lines.length; i++) {
             const rowText = lines[i].trim();
             if (!rowText) continue;
 
             const parts = rowText.split(/[,\t;]/).map(p => p.trim().replace(/^["']|["']$/g, ''));
             
-            let id = parts[idIndex] || '';
-            let name = parts[nameIndex] || '';
-            let genderRaw = parts[genderIndex] || '';
-            let statusVal = parts[statusIndex] || '';
+            let id = idIndex !== -1 && idIndex < parts.length ? parts[idIndex] || '' : '';
+            let name = nameIndex !== -1 && nameIndex < parts.length ? parts[nameIndex] || '' : '';
+            let genderRaw = genderIndex !== -1 && genderIndex < parts.length ? parts[genderIndex] || '' : '';
+            let statusVal = statusIndex !== -1 && statusIndex < parts.length ? parts[statusIndex] || '' : '';
 
             if (!id || !name || !genderRaw) {
               let fallbackId = '';
@@ -515,7 +595,9 @@ export function GradeTable({
                 } else if (p.length > 0 && !fallbackName) {
                   fallbackName = p;
                 } else if (p.length > 0 && j === parts.length - 1) {
-                  fallbackStatus = p;
+                  if (/^(FA|W|WA|PST|IP|I)$/i.test(p)) {
+                    fallbackStatus = p;
+                  }
                 }
               }
               if (fallbackId && fallbackName) {
@@ -544,14 +626,91 @@ export function GradeTable({
               const parsedNameInfo = parseStudentName(name);
               const finalName = parsedNameInfo.cleanedName || name;
               const finalGender = genderNormalized || (parsedNameInfo.gender as 'M' | 'F') || 'M';
-              const finalStatus = (statusVal || parsedNameInfo.status || '').toUpperCase().trim();
+              
+              let rawFinalStatus = (statusVal || parsedNameInfo.status || '').toUpperCase().trim();
+              if (/^\d+(\.\d+)?$/.test(rawFinalStatus)) {
+                rawFinalStatus = '';
+              }
+              const finalStatus = rawFinalStatus;
+
+              // Parse and map grades dynamically if grades columns are detected
+              const studentGrades: { [key: number]: string } = {};
+
+              const extractVal = (colIdx: number) => {
+                if (colIdx === -1 || colIdx >= parts.length) return undefined;
+                const rawVal = parts[colIdx]?.trim() || '';
+                const num = parseFloat(rawVal);
+                return isNaN(num) ? undefined : num;
+              };
+
+              // 1. Map individual raw columns if available
+              if (extractVal(raw_partIdx) !== undefined) studentGrades[3] = String(extractVal(raw_partIdx));
+              if (extractVal(raw_eportIdx) !== undefined) studentGrades[4] = String(extractVal(raw_eportIdx));
+              if (extractVal(raw_presIdx) !== undefined) studentGrades[5] = String(extractVal(raw_presIdx));
+              if (extractVal(raw_pq1Idx) !== undefined) studentGrades[6] = String(extractVal(raw_pq1Idx));
+              if (extractVal(raw_pq2Idx) !== undefined) studentGrades[7] = String(extractVal(raw_pq2Idx));
+              if (extractVal(raw_t1Idx) !== undefined) studentGrades[8] = String(extractVal(raw_t1Idx));
+              if (extractVal(raw_t2Idx) !== undefined) studentGrades[9] = String(extractVal(raw_t2Idx));
+              if (extractVal(raw_stestIdx) !== undefined) studentGrades[10] = String(extractVal(raw_stestIdx));
+              if (extractVal(raw_wtestIdx) !== undefined) studentGrades[11] = String(extractVal(raw_wtestIdx));
+              if (extractVal(raw_wportIdx) !== undefined) studentGrades[12] = String(extractVal(raw_wportIdx));
+              if (extractVal(raw_mid1Idx) !== undefined) studentGrades[13] = String(extractVal(raw_mid1Idx));
+              if (extractVal(raw_mid2Idx) !== undefined) studentGrades[14] = String(extractVal(raw_mid2Idx));
+              if (extractVal(raw_fin1Idx) !== undefined) studentGrades[15] = String(extractVal(raw_fin1Idx));
+              if (extractVal(raw_fin2Idx) !== undefined) studentGrades[16] = String(extractVal(raw_fin2Idx));
+
+              // 2. Map final weighted categories (e.g. from user's attached file)
+              const partPortVal = extractVal(partPortIdx);
+              if (partPortVal !== undefined) {
+                const rawEqVal = (partPortVal / 10) * 20;
+                const fmt = (Math.round(rawEqVal * 10) / 10).toString();
+                studentGrades[3] = fmt;
+                studentGrades[4] = fmt;
+              }
+
+              const testsVal = extractVal(testsIdx);
+              if (testsVal !== undefined) {
+                const rawEq5 = (testsVal / 30) * 20;
+                const rawEq2_5 = (testsVal / 30) * 10;
+                const fmt5 = (Math.round(rawEq5 * 10) / 10).toString();
+                const fmt2_5 = (Math.round(rawEq2_5 * 10) / 10).toString();
+                studentGrades[6] = fmt2_5;
+                studentGrades[7] = fmt2_5;
+                studentGrades[8] = fmt5;
+                studentGrades[9] = fmt5;
+                studentGrades[10] = fmt5;
+                studentGrades[11] = fmt5;
+                studentGrades[12] = fmt5;
+              }
+
+              const presVal = extractVal(presIdx);
+              if (presVal !== undefined) {
+                const rawEqVal = (presVal / 10) * 25;
+                studentGrades[5] = (Math.round(rawEqVal * 10) / 10).toString();
+              }
+
+              const midtermVal = extractVal(midtermIdx);
+              if (midtermVal !== undefined) {
+                const rawEq13 = (midtermVal / 20) * 40;
+                const rawEq14 = (midtermVal / 20) * 10;
+                studentGrades[13] = (Math.round(rawEq13 * 10) / 10).toString();
+                studentGrades[14] = (Math.round(rawEq14 * 10) / 10).toString();
+              }
+
+              const finalVal = extractVal(finalIdx);
+              if (finalVal !== undefined) {
+                const rawEq15 = (finalVal / 30) * 40;
+                const rawEq16 = (finalVal / 30) * 10;
+                studentGrades[15] = (Math.round(rawEq15 * 10) / 10).toString();
+                studentGrades[16] = (Math.round(rawEq16 * 10) / 10).toString();
+              }
 
               students.push({
                 id: id.padStart(7, '0'),
                 name: finalName,
                 gender: finalGender as 'M' | 'F',
                 status: finalStatus || undefined,
-                grades: {}
+                grades: studentGrades
               });
             } else {
               errors.push({

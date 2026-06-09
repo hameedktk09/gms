@@ -19,7 +19,8 @@ import {
   Copy,
   ExternalLink,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles
 } from 'lucide-react';
 import { getCourseReportSummary, calculateFinalValues, getStudentStatus } from '@/src/lib/grade-utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1080,6 +1081,7 @@ export function AdminDashboard({
               </div>
             </TabsContent>
             )}
+
           </Tabs>
         )}
       </div>

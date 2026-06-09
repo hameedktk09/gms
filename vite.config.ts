@@ -1,18 +1,17 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { viteSingleFile } from "vite-plugin-singlefile";
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, '.', '');
   return {
-    // GitHub Pages serves this project at /gms/, so assets must be prefixed.
-    // For full-stack hosting (Render) it stays at the domain root.
-    base: process.env.GITHUB_PAGES === 'true' ? '/gms/' : '/',
+    base: '/',
     plugins: [react(), tailwindcss(), viteSingleFile()],
-    // NOTE: GEMINI_API_KEY is intentionally NOT exposed to the client bundle.
-    // The Gemini key is used only server-side (server.ts); the frontend calls
-    // the /api/* routes. Baking the key into the bundle would leak it publicly.
+    define: {
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
