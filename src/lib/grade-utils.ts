@@ -553,8 +553,21 @@ export function getGradeColorClass(value: string, index: number) {
   return '';
 }
 
+export function sanitizeStudentName(name: string): string {
+  if (!name) return '';
+  // Remove parenthesized digits/decimals, e.g., "(21.1)", "(26)", "(2.5)"
+  let clean = name.replace(/\(\s*\d+(?:\.\d+)?\s*\)/g, '');
+  // Remove brackets digits/decimals, e.g., "[21.1]", "[26]"
+  clean = clean.replace(/\[\s*\d+(?:\.\d+)?\s*\]/g, '');
+  // Remove any trailing decimals or numbers with context, e.g. " 21.1" at the end of name
+  clean = clean.replace(/\s+\d+(?:\.\d+)?\s*$/g, '');
+  // Replace multiple spaces with a single space
+  clean = clean.replace(/\s+/g, ' ');
+  return clean.trim();
+}
+
 export function parseStudentName(name: string): { cleanedName: string, gender: 'M' | 'F' | undefined, status: string | undefined } {
-  let tempName = name || '';
+  let tempName = sanitizeStudentName(name || '');
   
   // Extract status
   const statusMatch = tempName.match(/\((FA|W|WA|PST)\)/i);
