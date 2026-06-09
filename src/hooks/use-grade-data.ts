@@ -1,31 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AllCoursesData, SectionData, StudentData } from '@/src/types';
-import { sanitizeStudentName } from '@/src/lib/grade-utils';
 
 const STORAGE_KEY = 'SGS_All_Courses';
-
-function sanitizeAllNames(data: AllCoursesData): AllCoursesData {
-  const result: AllCoursesData = {};
-  for (const [key, section] of Object.entries(data)) {
-    if (section && section.students) {
-      result[key] = {
-        ...section,
-        students: section.students.map(s => ({
-          ...s,
-          name: sanitizeStudentName(s.name || '')
-        }))
-      };
-    } else {
-      result[key] = section;
-    }
-  }
-  return result;
-}
 
 export function useGradeData() {
   const [allData, setAllData] = useState<AllCoursesData>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? sanitizeAllNames(JSON.parse(saved)) : {};
+    return saved ? JSON.parse(saved) : {};
   });
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
@@ -36,9 +17,8 @@ export function useGradeData() {
         const res = await fetch("/api/grades");
         const json = await res.json();
         if (json.success && json.grades) {
-          const sanitized = sanitizeAllNames(json.grades);
-          setAllData(sanitized);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+          setAllData(json.grades);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.grades));
         }
       } catch (e) {
         console.warn("Failed to load grades from backend, using local:", e);
@@ -97,10 +77,7 @@ export function useGradeData() {
   };
 
   const saveAllData = (newDataOrFn: AllCoursesData | ((prev: AllCoursesData) => AllCoursesData)) => {
-    setAllData(prev => {
-      const next = typeof newDataOrFn === 'function' ? newDataOrFn(prev) : newDataOrFn;
-      return sanitizeAllNames(next);
-    });
+    setAllData(prev => (typeof newDataOrFn === 'function' ? newDataOrFn(prev) : newDataOrFn));
   };
 
   const updateStudentGrade = (studentId: string, gradeIndex: number, value: string, isBypass: boolean = false) => {
