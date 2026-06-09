@@ -8,46 +8,10 @@ export function useGradeData() {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : {};
   });
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // Fetch all grades from backend on mount
-  useEffect(() => {
-    const loadGradesData = async () => {
-      try {
-        const res = await fetch("/api/grades");
-        const json = await res.json();
-        if (json.success && json.grades) {
-          setAllData(json.grades);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.grades));
-        }
-      } catch (e) {
-        console.warn("Failed to load grades from backend, using local:", e);
-      } finally {
-        setIsDataLoaded(true);
-      }
-    };
-    loadGradesData();
-  }, []);
-
-  // Save to backend and local storage on updates after backend load complete
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-    
-    if (isDataLoaded) {
-      const saveGradesData = async () => {
-        try {
-          await fetch("/api/grades", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ grades: allData })
-          });
-        } catch (e) {
-          console.error("Failed to save grades in backend:", e);
-        }
-      };
-      saveGradesData();
-    }
-  }, [allData, isDataLoaded]);
+  }, [allData]);
 
   const [currentCourse, setCurrentCourse] = useState(() => localStorage.getItem('SGS_currentCourse') || 'FPPI002');
   const [currentSection, setCurrentSection] = useState(() => localStorage.getItem('SGS_currentSection') || '00');

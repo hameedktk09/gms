@@ -67,22 +67,7 @@ export default function App() {
     localStorage.setItem('clfs_registration_requests', JSON.stringify(registrationRequests));
   }, [registrationRequests]);
 
-  useEffect(() => {
-    const loadRequests = async () => {
-      try {
-        const res = await fetch("/api/registration-requests");
-        const json = await res.json();
-        if (json.success && json.requests) {
-          setRegistrationRequests(json.requests);
-        }
-      } catch (e) {
-        console.warn("Failed to load registration requests from backend:", e);
-      }
-    };
-    loadRequests();
-  }, []);
-
-  const handleRequestRegister = async (fullName: string, email: string, subject: 'English') => {
+  const handleRequestRegister = (fullName: string, email: string, subject: 'English') => {
     const existing = registrationRequests.find(r => r.email.toLowerCase() === email.toLowerCase() && r.status === 'pending');
     if (existing) {
       return { success: false, message: "A request for this official email is already pending approval." };
@@ -100,23 +85,6 @@ export default function App() {
     };
 
     setRegistrationRequests(prev => [newRequest, ...prev]);
-
-    try {
-      const res = await fetch("/api/registration-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newRequest)
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        // Rollback state if server returns error
-        setRegistrationRequests(prev => prev.filter(r => r.id !== newRequest.id));
-        return { success: false, message: data.message || "Registration request failed." };
-      }
-    } catch (e) {
-      console.error("Failed to send request to backend:", e);
-    }
-
     return { 
       success: true, 
       message: `Your request has been sent successfully and is in Queue ${pendingCount}.`,
@@ -124,7 +92,7 @@ export default function App() {
     };
   };
 
-  const handleApproveRequest = async (requestId: string, chosenUsername?: string, chosenPassword?: string) => {
+  const handleApproveRequest = (requestId: string, chosenUsername?: string, chosenPassword?: string) => {
     const reqObj = registrationRequests.find(r => r.id === requestId);
     if (!reqObj) return;
 
@@ -162,41 +130,22 @@ export default function App() {
       return r;
     }));
 
-    try {
-      await fetch(`/api/registration-requests/${requestId}/approve`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chosenUsername, chosenPassword })
-      });
-    } catch (e) {
-      console.error("Failed to save approved request to server:", e);
-    }
-
     toast.success(`Instructor account approved!`, {
       description: `Username: ${generatedUsername} | Password: ${defaultPass}`
     });
   };
 
-  const handleRejectRequest = async (requestId: string) => {
+  const handleRejectRequest = (requestId: string) => {
     setRegistrationRequests(prev => prev.map(r => {
       if (r.id === requestId) {
         return { ...r, status: 'rejected' };
       }
       return r;
     }));
-
-    try {
-      await fetch(`/api/registration-requests/${requestId}/reject`, {
-        method: "PUT"
-      });
-    } catch (e) {
-      console.error("Failed to reject request on server:", e);
-    }
-
     toast.success("Registration request rejected");
   };
 
-  const handleRemoveRequest = async (requestId: string) => {
+  const handleRemoveRequest = (requestId: string) => {
     const reqObj = registrationRequests.find(r => r.id === requestId);
     if (!reqObj) return;
 
@@ -205,15 +154,6 @@ export default function App() {
     }
 
     setRegistrationRequests(prev => prev.filter(r => r.id !== requestId));
-
-    try {
-      await fetch(`/api/registration-requests/${requestId}`, {
-        method: "DELETE"
-      });
-    } catch (e) {
-      console.error("Failed to delete request on server:", e);
-    }
-
     toast.success("Instructor registration completely removed");
   };
 

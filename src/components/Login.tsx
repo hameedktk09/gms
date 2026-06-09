@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   allUsers?: { [key: string]: any };
-  onRequestRegister?: (fullName: string, email: string, subject: 'English') => Promise<{ success: boolean; message: string; queueNumber?: number }> | { success: boolean; message: string; queueNumber?: number };
+  onRequestRegister?: (fullName: string, email: string, subject: 'English') => { success: boolean; message: string; queueNumber?: number };
 }
 
 export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
@@ -61,7 +61,7 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
     }
   };
 
-  const handleRequestRegister = async () => {
+  const handleRequestRegister = () => {
     if (!reqFullName || !reqEmail) {
       toast.error("Please specify both raw name and email.");
       return;
@@ -73,7 +73,7 @@ export function Login({ onLogin, allUsers, onRequestRegister }: LoginProps) {
     }
 
     if (onRequestRegister) {
-      const response = await onRequestRegister(reqFullName, reqEmail, reqSubject);
+      const response = onRequestRegister(reqFullName, reqEmail, reqSubject);
       if (response.success) {
         toast.success(response.message);
         setRegistrationSuccess(response.message);
