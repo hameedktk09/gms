@@ -10,7 +10,8 @@ dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // Render (and most hosts) inject PORT; fall back to 3000 for local dev.
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
 
