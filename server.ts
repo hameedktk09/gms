@@ -4,14 +4,13 @@ import path from "path";
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from "@google/genai";
-import { readDb, writeDb } from "./server-db.js";
+import { readDb, writeDb, initializeFirestoreDb, getFirebaseDb } from "./server-db.js";
 
 dotenv.config();
 
 async function startServer() {
   const app = express();
-  // Render (and most hosts) inject PORT; fall back to 3000 for local dev.
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   app.use(express.json());
 
@@ -221,6 +220,16 @@ async function startServer() {
   app.get("/api/grades", (req, res) => {
     const db = readDb();
     res.json({ success: true, grades: db.grades });
+  });
+
+  // Firebase Status API
+  app.get("/api/firebase-status", (req, res) => {
+    try {
+      const db = getFirebaseDb();
+      res.json({ success: true, active: !!db });
+    } catch (e) {
+      res.json({ success: true, active: false });
+    }
   });
 
   // Grades API - Save/Update All Grades
@@ -812,6 +821,9 @@ Return the output STRICTLY matching the requested JSON schema.`
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Initialize and synchronize with Firebase Firestore records
+  await initializeFirestoreDb();
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

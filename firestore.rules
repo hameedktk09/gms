@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Zero-Trust Default Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Rules for User profiles
+    match /users/{username} {
+      allow read, write: if false; // Server-only administration access
+    }
+
+    // Rules for registration requests
+    match /registrationRequests/{requestId} {
+      allow read, write: if false; 
+    }
+
+    // Rules for course section grades
+    match /sectionGrades/{sectionKey} {
+      allow read, write: if false;
+    }
+
+    // Rules for AI-generated section reports
+    match /aiReports/{sectionKey} {
+      allow read, write: if false;
+    }
+
+    // Rules for student remarks
+    match /studentRemarks/{remarksId} {
+      allow read, write: if false;
+    }
+
+    // Rules for student course feedback evaluations
+    match /feedbackReports/{reportId} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -214,7 +214,7 @@ export function useGradeData() {
 
   const getAvailableCourses = useCallback(() => {
     const courses = new Set<string>();
-    const englishCourses = ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'];
+    const englishCourses = ['FPPI002', 'FPIN003', 'FPAD004'];
     
     // Prioritize sections that actually have student records
     (Object.entries(allData) as Array<[string, SectionData]>).forEach(([key, section]) => {
@@ -240,7 +240,7 @@ export function useGradeData() {
     }
 
     // Secondary Fallback
-    if (courses.size === 0) return ['FP00000'];
+    if (courses.size === 0) return ['FPPI002'];
     return Array.from(courses).sort();
   }, [allData, currentSemester, currentCourse, currentSection, getSectionKey]);
 

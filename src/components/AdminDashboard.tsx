@@ -147,8 +147,14 @@ export function AdminDashboard({
 
     Object.entries(allData).forEach(([key, section]) => {
       const courseName = (section.formData.courseTitle || section.formData.course || '').trim();
+      const courseCode = (section.formData.course || '').trim().toUpperCase();
       
-      if (courseName === '' || !courseName.toLowerCase().includes('english')) {
+      const isEnglish = 
+        courseName.toLowerCase().includes('english') || 
+        courseCode.startsWith('FP') || 
+        key.includes('_FP');
+
+      if (!isEnglish) {
           return;
       }
 
@@ -159,11 +165,27 @@ export function AdminDashboard({
         const userEmail = (userObj.email || '').trim().toLowerCase();
         const instructorField = cleanInstructorText(section.formData.instructor || '').trim().toLowerCase();
 
-        if (
-          instructorField !== userFullName && 
-          instructorField !== userName && 
-          (!userEmail || instructorField !== userEmail)
-        ) {
+        // Safe words matching helper to match partial/flexible instructor names (e.g. Dr. Hameed KTK vs Hameed KTK)
+        const getWords = (str: string) => 
+          str.replace(/[^a-z0-9\s]/gi, '')
+             .toLowerCase()
+             .split(/\s+/)
+             .filter(w => w.length >= 3 && w !== "dr" && w !== "prof" && w !== "mr" && w !== "ms" && w !== "mrs" && w !== "instructor");
+
+        const words1 = getWords(userFullName);
+        const words2 = getWords(instructorField);
+        const hasMutualWord = words1.some(w => words2.includes(w));
+
+        const isExactMatch = 
+          instructorField === userFullName || 
+          instructorField === userName || 
+          (userEmail && instructorField === userEmail);
+
+        const isSubstringMatch = 
+          (instructorField && userFullName && (instructorField.includes(userFullName) || userFullName.includes(instructorField))) ||
+          (instructorField && userName && (instructorField.includes(userName) || userName.includes(instructorField)));
+
+        if (!isExactMatch && !isSubstringMatch && !hasMutualWord) {
           return;
         }
       }

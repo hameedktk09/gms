@@ -153,6 +153,7 @@ interface GradeTableProps {
   onChangePassword: () => void;
   onAddSection?: (sectionCode: string) => void;
   hidePrintHeader?: boolean;
+  isCloudActive?: boolean;
 }
 
 export function GradeTable({ 
@@ -189,7 +190,8 @@ export function GradeTable({
   onOpenAdmin,
   onChangePassword,
   onAddSection,
-  hidePrintHeader
+  hidePrintHeader,
+  isCloudActive
 }: GradeTableProps) {
   const [emailCategory, setEmailCategory] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -297,7 +299,7 @@ export function GradeTable({
     // Course patterns (highest to lowest priority)
     const coursePatterns = [
       // English course codes
-      { pattern: /FP00000/i, code: 'FP00000' },
+      { pattern: /FP00000/i, code: 'FPPI002' },
       { pattern: /FPPI002/i, code: 'FPPI002' },
       { pattern: /FPIN003/i, code: 'FPIN003' },
       { pattern: /FPAD004/i, code: 'FPAD004' },
@@ -306,7 +308,7 @@ export function GradeTable({
       { pattern: /English\s*Advance/i, code: 'FPAD004' },
       { pattern: /English\s*Intermediate/i, code: 'FPIN003' },
       { pattern: /English\s*Pre-Intermediate/i, code: 'FPPI002' },
-      { pattern: /English/i, code: 'FP00000' }
+      { pattern: /English/i, code: 'FPPI002' }
     ];
     
     // Section patterns
@@ -376,7 +378,7 @@ export function GradeTable({
         
         // Determine the target identifiers for this file
         const targetSemester = meta.semester || currentSectionData.formData.semester || "Fall";
-        const targetCourse = meta.course || currentSectionData.formData.course || "FP00000";
+        const targetCourse = meta.course || currentSectionData.formData.course || "FPPI002";
         const targetSection = meta.section || (meta.course && meta.course !== course ? "01" : currentSectionData.formData.section || "01");
         const targetKey = getSectionKey(targetSemester, targetCourse, targetSection);
 
@@ -2276,6 +2278,22 @@ export function GradeTable({
             <span className="text-[10px] font-bold bg-white border border-slate-200 text-slate-600 uppercase tracking-widest px-3 py-1 rounded-full shadow-xs">
               {SEMESTER_OPTIONS.find(s => s.value === semester)?.label || semester}
             </span>
+            {isCloudActive ? (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-850 uppercase tracking-widest px-3 py-1 rounded-full shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 relative flex">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                </span>
+                Cloud Active
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-amber-50 border border-amber-200 text-amber-850 uppercase tracking-widest px-3 py-1 rounded-full shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 relative flex">
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                </span>
+                Local Mode
+              </span>
+            )}
           </div>
 
           <div className="mt-4 relative shrink-0 no-print w-48 mx-auto">
@@ -2388,7 +2406,7 @@ export function GradeTable({
                         {COURSE_OPTIONS.filter(c => {
                           if (user?.role === 'instructor' && user?.subject) {
                             if (user.subject === 'English') {
-                              return ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'].includes(c.value);
+                              return ['FPPI002', 'FPIN003', 'FPAD004'].includes(c.value);
                             } else if (user.subject === 'Mathematics') {
                               return c.value === 'FPMA001';
                             } else if (user.subject === 'Information Technology') {

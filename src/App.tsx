@@ -218,6 +218,22 @@ export default function App() {
   };
 
   const [isAdminDashboardActive, setIsAdminDashboardActive] = useState(true);
+  const [isCloudActive, setIsCloudActive] = useState(false);
+
+  useEffect(() => {
+    const checkCloudStatus = async () => {
+      try {
+        const res = await fetch("/api/firebase-status");
+        const data = await res.json();
+        if (data.success && data.active) {
+          setIsCloudActive(true);
+        }
+      } catch (e) {
+        console.error("Failed to check cloud status:", e);
+      }
+    };
+    checkCloudStatus();
+  }, []);
 
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [printMode, setPrintMode] = useState<'section' | 'booklet'>('section');
@@ -298,9 +314,9 @@ export default function App() {
       return;
     }
 
-    let courseCode = 'FP00000';
+    let courseCode = 'FPPI002';
     if (subject === 'English') {
-      courseCode = 'FP00000';
+      courseCode = 'FPPI002';
     } else if (subject === 'Mathematics') {
       courseCode = 'FPMA001';
     } else if (subject === 'Information Technology') {
@@ -311,6 +327,15 @@ export default function App() {
     const userFullName = (instructorUser.fullName || '').trim().toLowerCase();
     const userName = (instructorUser.username || '').trim().toLowerCase();
     const userEmail = (instructorUser.email || '').trim().toLowerCase();
+
+    // Helper to get matching words
+    const getWords = (str: string) => 
+      str.replace(/[^a-z0-9\s]/gi, '')
+         .toLowerCase()
+         .split(/\s+/)
+         .filter(w => w.length >= 3 && w !== "dr" && w !== "prof" && w !== "mr" && w !== "ms" && w !== "mrs" && w !== "instructor");
+
+    const words1 = getWords(userFullName);
 
     let foundKey = null;
     let foundSecCode = null;
@@ -325,11 +350,20 @@ export default function App() {
 
       if (keyCourse === courseCode && section.formData) {
         const instructorField = (section.formData.instructor || '').trim().toLowerCase();
-        if (
+        
+        const words2 = getWords(instructorField);
+        const hasMutualWord = words1.some(w => words2.includes(w));
+
+        const isExactMatch = 
           instructorField === userFullName || 
           instructorField === userName || 
-          (userEmail && instructorField === userEmail)
-        ) {
+          (userEmail && instructorField === userEmail);
+
+        const isSubstringMatch = 
+          (instructorField && userFullName && (instructorField.includes(userFullName) || userFullName.includes(instructorField))) ||
+          (instructorField && userName && (instructorField.includes(userName) || userName.includes(instructorField)));
+
+        if (isExactMatch || isSubstringMatch || hasMutualWord) {
           foundKey = key;
           foundSecCode = keySec;
           foundSem = keySem;
@@ -359,7 +393,16 @@ export default function App() {
           break;
         }
         const secIns = (secData.formData?.instructor || '').trim().toLowerCase();
-        const worksHere = secIns === userFullName || secIns === userName || secIns === userEmail;
+        
+        const secWords = getWords(secIns);
+        const secHasMutualWord = words1.some(w => secWords.includes(w));
+
+        const secIsExact = secIns === userFullName || secIns === userName || secIns === userEmail;
+        const secIsSub = (secIns && userFullName && (secIns.includes(userFullName) || userFullName.includes(secIns))) ||
+                          (secIns && userName && (secIns.includes(userName) || userName.includes(secIns)));
+
+        const worksHere = secIsExact || secIsSub || secHasMutualWord;
+
         const isPlaceholder = !secIns || secIns === '' || secIns === "instructor's name" || secIns === "administrator";
         if (isPlaceholder || worksHere) {
           chosenSec = secStr;
@@ -390,9 +433,9 @@ export default function App() {
   useEffect(() => {
     if (user && user.role === 'instructor' && user.subject) {
       if (user.subject === 'English') {
-        const englishCourses = ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'];
+        const englishCourses = ['FPPI002', 'FPIN003', 'FPAD004'];
         if (!englishCourses.includes(currentCourse)) {
-          setCurrentCourse('FP00000');
+          setCurrentCourse('FPPI002');
         }
       } else if (user.subject === 'Mathematics' && currentCourse !== 'FPMA001') {
         setCurrentCourse('FPMA001');
@@ -852,6 +895,7 @@ export default function App() {
                     transition={{ duration: 0.2 }}
                   >
                     <GradeTable 
+                      isCloudActive={isCloudActive}
                       semester={currentSemester}
                       setSemester={setCurrentSemester}
                       course={currentCourse}
@@ -862,7 +906,7 @@ export default function App() {
                         const allAvail = getAvailableCourses();
                         if (user?.role === 'instructor' && user?.subject) {
                           if (user.subject === 'English') {
-                            const englishCourses = ['FP00000', 'FPPI002', 'FPIN003', 'FPAD004'];
+                            const englishCourses = ['FPPI002', 'FPIN003', 'FPAD004'];
                             return allAvail.filter(c => englishCourses.includes(c));
                           } else if (user.subject === 'Mathematics') {
                             return allAvail.filter(c => c === 'FPMA001');

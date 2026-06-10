@@ -97,7 +97,6 @@ export const FINAL_MARKS_LIMITS: { [key: number]: number } = {
 };
 
 export const COURSE_OPTIONS = [
-  { value: 'FP00000', label: 'English' },
   { value: 'FPPI002', label: 'English Pre-Intermediate' },
   { value: 'FPIN003', label: 'English Intermediate' },
   { value: 'FPAD004', label: 'English Advance' },
